@@ -48,7 +48,8 @@ export interface Item {
 
 export type ItemData = Omit<Item, "id" | "createdAt" | "updatedAt">;
 
-const MAX_AMOUNT = 100_000;
+/** Größte erlaubte Menge (gilt auch beim Backup-Import) */
+export const MAX_AMOUNT = 100_000;
 const amount = z
   .number({ error: "Bitte eine Zahl eingeben." })
   .min(0, "Darf nicht negativ sein.")
@@ -142,13 +143,22 @@ export function applyPurchase(item: Item, purchased: number | null, now: number)
     return { ...fresh, level: "full", updatedAt: now };
   }
   const added = purchased ?? restockQuantity(fresh);
-  return { ...fresh, quantity: roundAmount(fresh.quantity + added), updatedAt: now };
+  return { ...fresh, quantity: clampAmount(fresh.quantity + added), updatedAt: now };
 }
 
-/** +/- Knopf: eine Schrittweite der Einheit, nie unter 0 */
+/**
+ * Hält Mengen im gültigen Bereich 0 … MAX_AMOUNT.
+ * Wichtig: Sonst könnte eine Menge über die Grenze wachsen, die der Backup-Import erlaubt –
+ * und ein Backup ließe sich nicht mehr einspielen.
+ */
+export function clampAmount(n: number): number {
+  return Math.min(MAX_AMOUNT, Math.max(0, roundAmount(n)));
+}
+
+/** +/- Knopf: eine Schrittweite der Einheit, nie unter 0 und nie über die Obergrenze */
 export function adjustQuantity(item: Item, direction: 1 | -1, now: number): Item {
-  const changed = roundAmount(item.quantity + direction * unitInfo(item.unit).step);
-  return clearExpiryIfEmpty({ ...item, quantity: Math.max(0, changed), updatedAt: now });
+  const changed = clampAmount(item.quantity + direction * unitInfo(item.unit).step);
+  return clearExpiryIfEmpty({ ...item, quantity: changed, updatedAt: now });
 }
 
 /** Füllstand antippen: voll → halb → wenig → leer → voll */

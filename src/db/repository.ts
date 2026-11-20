@@ -2,6 +2,7 @@ import {
   ItemDataSchema,
   adjustQuantity,
   applyPurchase,
+  clampAmount,
   cycleLevel,
   type Item,
 } from "../domain/item.ts";
@@ -9,6 +10,7 @@ import {
   ManualEntrySchema,
   manualEntryForItem,
   planShoppingSync,
+  purchaseAmount,
   type NewShoppingEntry,
 } from "../domain/shopping.ts";
 import {
@@ -246,7 +248,7 @@ export async function completePurchase(): Promise<number> {
       if (entry.itemId === null) continue;
       const item = await db.items.get(entry.itemId);
       if (!item) continue;
-      const updated = applyPurchase(item, entry.quantity, Date.now());
+      const updated = applyPurchase(item, purchaseAmount(entry, item), Date.now());
       await db.items.put(updated);
       await syncShopping(updated);
     }
@@ -318,8 +320,17 @@ export async function addMissingIngredientsToShoppingList(
       );
       if (open) {
         // "manual": sonst würde der automatische Abgleich die Menge wieder zurücksetzen
-        const raised = quantity === null ? open.quantity : Math.max(open.quantity ?? 0, quantity);
-        await db.shopping.update(open.id, { quantity: raised, source: "manual" });
+        // Bestehende Menge erst in die Einheit des Artikels umrechnen, dann vergleichen
+        if (quantity === null) {
+          await db.shopping.update(open.id, { source: "manual" });
+        } else {
+          const existing = purchaseAmount(open, item) ?? 0;
+          await db.shopping.update(open.id, {
+            quantity: clampAmount(Math.max(existing, quantity)),
+            unit: item.unit,
+            source: "manual",
+          });
+        }
       } else {
         await db.shopping.add({ ...manualEntryForItem(item, Date.now()), quantity });
       }

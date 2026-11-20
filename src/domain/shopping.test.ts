@@ -4,6 +4,7 @@ import {
   entryAmountText,
   groupBySection,
   planShoppingSync,
+  purchaseAmount,
 } from "./shopping.ts";
 import { makeEntry, makeItem } from "./testing.ts";
 
@@ -110,6 +111,30 @@ describe("entryAmountText", () => {
   });
   it("zeigt nichts ohne Menge", () => {
     expect(entryAmountText(makeEntry({ quantity: null, unit: null }))).toBeNull();
+  });
+});
+
+describe("purchaseAmount (Einkauf in der Einheit des Vorrats)", () => {
+  it("rechnet die Einheit des Eintrags um (1,8 kg → 1800 g)", () => {
+    const item = makeItem({ unit: "g" });
+    expect(purchaseAmount(makeEntry({ quantity: 1.8, unit: "kg" }), item)).toBe(1800);
+  });
+  it("gleiche Einheit bleibt gleich", () => {
+    expect(purchaseAmount(makeEntry({ quantity: 2, unit: "l" }), makeItem({ unit: "l" }))).toBe(2);
+  });
+  it("nicht umrechenbar (Stück → g) oder ohne Menge → null (übliche Nachkauf-Menge)", () => {
+    expect(
+      purchaseAmount(makeEntry({ quantity: 2, unit: "piece" }), makeItem({ unit: "g" })),
+    ).toBeNull();
+    expect(purchaseAmount(makeEntry({ quantity: null, unit: null }), makeItem())).toBeNull();
+  });
+  it("grob geschätzte Artikel → null (werden auf 'voll' gesetzt)", () => {
+    expect(purchaseAmount(makeEntry(), makeItem({ mode: "level" }))).toBeNull();
+  });
+  it("begrenzt auf die Obergrenze", () => {
+    expect(purchaseAmount(makeEntry({ quantity: 500, unit: "l" }), makeItem({ unit: "ml" }))).toBe(
+      100_000,
+    );
   });
 });
 

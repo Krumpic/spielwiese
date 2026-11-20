@@ -8,7 +8,7 @@ import {
 } from "../domain/backup.ts";
 import { markBackupDone } from "../db/repository.ts";
 
-export type ShareOutcome = "saved" | "cancelled";
+export type ShareOutcome = "saved" | "cancelled" | "invalid";
 
 function download(file: File): void {
   const url = URL.createObjectURL(file);
@@ -32,7 +32,13 @@ function download(file: File): void {
 export async function saveBackupFile(data: BackupData): Promise<ShareOutcome> {
   const backup = createBackup(data, Date.now());
   const name = backupFileName(backup.exportedAt);
-  const file = new File([JSON.stringify(backup, null, 2)], name, { type: "application/json" });
+  const text = JSON.stringify(backup, null, 2);
+
+  // Gegenprobe: Das Backup muss sich mit genau denselben Regeln wieder einlesen lassen.
+  // Sonst würde man eine scheinbar gute, aber unbrauchbare Sicherung erhalten.
+  if (!parseBackup(text).ok) return "invalid";
+
+  const file = new File([text], name, { type: "application/json" });
 
   let shared = false;
   if ("canShare" in navigator && navigator.canShare({ files: [file] })) {
