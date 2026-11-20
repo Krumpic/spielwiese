@@ -1,0 +1,34 @@
+{
+  "permissions": {
+    "deny": [
+      "Read(./.env)",
+      "Read(./.env.*)",
+      "Read(**/.env)",
+      "Read(**/.env.*)",
+      "Edit(./.env)",
+      "Edit(./.env.*)",
+      "Edit(**/.env)",
+      "Edit(**/.env.*)",
+      "Edit(./.claude/settings.json)",
+      "Edit(./.claude/hooks/**)",
+      "Bash(git push*)",
+      "PowerShell(git push*)"
+    ]
+  },
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Bash|PowerShell|Read|Edit|Write|NotebookEdit|Grep|Glob",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node \"$CLAUDE_PROJECT_DIR/.claude/hooks/guard.mjs\"",
+            "timeout": 300,
+            "onFailure": "block",
+            "statusMessage": "Sicherheits-Check…"
+          }
+        ]
+      }
+    ]
+  }
+}

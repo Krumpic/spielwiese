@@ -1,0 +1,58 @@
+# ===== Geheimnisse – NIEMALS committen =====
+.env
+.env.*
+*.pem
+*.key
+*.p12
+*.pfx
+*.crt
+secrets/
+credentials*.json
+
+# ===== Persönliche Daten (Backups/Exporte aus der App) =====
+vorrat-backup*.json
+*.backup.json
+exports/
+
+# ===== Abhängigkeiten =====
+node_modules/
+.pnpm-store/
+
+# ===== Build-Ausgaben =====
+dist/
+dist-ssr/
+dev-dist/
+build/
+*.tsbuildinfo
+.vite/
+
+# ===== Tests & Reports =====
+coverage/
+playwright-report/
+test-results/
+.eslintcache
+.stylelintcache
+
+# ===== Logs =====
+logs/
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# ===== Lokale Einstellungen =====
+*.local
+.claude/settings.local.json
+
+# ===== Editor =====
+.vscode/*
+!.vscode/extensions.json
+.idea/
+*.swp
+*.swo
+
+# ===== Betriebssystem =====
+.DS_Store
+Thumbs.db
+desktop.ini
