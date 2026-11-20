@@ -1,0 +1,4 @@
+# Einheitliche Zeilenenden (LF) – verhindert Formatter-Konflikte unter Windows
+* text=auto eol=lf
+*.png binary
+*.ico binary

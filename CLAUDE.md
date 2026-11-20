@@ -33,18 +33,19 @@ Wenn ein Hook etwas blockiert: **nicht umgehen**, sondern dem Nutzer melden.
 Vor jedem `git commit` alle Punkte abarbeiten und das Ergebnis dem Nutzer kurz berichten.
 Der Hook führt `npm run check` automatisch aus und blockiert den Commit bei Fehlern.
 
-| # | Prüfung | Befehl / Vorgehen |
-|---|---|---|
-| 1 | **Formatter** | `npm run format:check` (Prettier) |
-| 2 | **Linter** | `npm run lint` (ESLint, inkl. Security-Regeln) – 0 Fehler, 0 Warnungen |
-| 3 | **Typen** | `npm run typecheck` (`tsc --noEmit`, strict) |
-| 4 | **Tests** | `npm test` |
-| 5 | **Security** | `npm audit --audit-level=moderate` + Secret-Scan (`npm run secrets`) + manueller Diff-Review (siehe 2.1) |
-| 6 | **Migration** | siehe Abschnitt 4 – bei jeder Änderung am Datenmodell |
+| #   | Prüfung       | Befehl / Vorgehen                                                                                        |
+| --- | ------------- | -------------------------------------------------------------------------------------------------------- |
+| 1   | **Formatter** | `npm run format:check` (Prettier)                                                                        |
+| 2   | **Linter**    | `npm run lint` (ESLint, inkl. Security-Regeln) – 0 Fehler, 0 Warnungen                                   |
+| 3   | **Typen**     | `npm run typecheck` (`tsc --noEmit`, strict)                                                             |
+| 4   | **Tests**     | `npm test`                                                                                               |
+| 5   | **Security**  | `npm audit --audit-level=moderate` + Secret-Scan (`npm run secrets`) + manueller Diff-Review (siehe 2.1) |
+| 6   | **Migration** | siehe Abschnitt 4 – bei jeder Änderung am Datenmodell                                                    |
 
 `npm run check` bündelt 1–5 (und den automatischen Teil von 6).
 
 ### 2.1 Manueller Security-Review des Diffs
+
 - Keine Secrets, Tokens, Schlüssel, persönlichen Daten im Diff (`git diff --staged`).
 - Kein `dangerouslySetInnerHTML`, `eval`, `new Function`, `innerHTML`, `document.write`.
 - Keine neuen externen Domains ohne Eintrag in der Content Security Policy und Rückfrage.
@@ -55,24 +56,31 @@ Der Hook führt `npm run check` automatisch aus und blockiert den Commit bei Feh
 
 ## 3. Technik-Stack
 
-| Bereich | Technologie |
-|---|---|
-| Build | Vite + React + TypeScript (`strict: true`) |
-| Daten | IndexedDB über Dexie.js |
-| Validierung | zod |
-| PWA | vite-plugin-pwa (Service Worker, Manifest, Offline) |
-| Styling | Tailwind CSS |
-| Qualität | ESLint (+ `eslint-plugin-security`, `eslint-plugin-react`), Prettier |
-| Tests | Vitest |
-| Hosting | GitHub Pages (nur statische Dateien, HTTPS) |
+| Bereich     | Technologie                                                          |
+| ----------- | -------------------------------------------------------------------- |
+| Build       | Vite + React + TypeScript (`strict: true`)                           |
+| Daten       | IndexedDB über Dexie.js                                              |
+| Validierung | zod                                                                  |
+| PWA         | vite-plugin-pwa (Service Worker, Manifest, Offline)                  |
+| Styling     | Tailwind CSS                                                         |
+| Qualität    | ESLint (+ `eslint-plugin-security`, `eslint-plugin-react`), Prettier |
+| Tests       | Vitest                                                               |
+| Hosting     | GitHub Pages (nur statische Dateien, HTTPS)                          |
 
 ### Sicherheits-Grundsätze im Code
+
 - **Content Security Policy** per `<meta>` in `index.html`: `default-src 'self'`; nur explizit erlaubte
   `connect-src` (z. B. später `https://world.openfoodfacts.org`). Kein `unsafe-eval`, kein `unsafe-inline` für Skripte.
 - Keine Skripte, Fonts oder Styles von CDNs – alles wird mitgebündelt.
 - Eindeutiger Datenbankname (`vorrat-app-db`), da sich alle GitHub-Pages-Projekte eines Accounts eine Origin teilen.
 - Fehlermeldungen zeigen keine internen Details an.
 - Abhängigkeiten minimal halten; `package-lock.json` wird immer committet.
+- `.npmrc` verbietet Installations-Skripte fremder Pakete (`ignore-scripts=true`). Nicht ändern;
+  braucht ein Paket ein Skript, erst mit dem Nutzer besprechen.
+- Verwundbare Unter-Abhängigkeiten werden per `overrides` in `package.json` repariert –
+  niemals mit `npm audit fix --force` (stuft Pakete unbemerkt herab).
+- Konfiguration des Geheimnis-Scanners liegt unter `config/leakscan*`.
+- GitHub Actions nur mit fester Commit-ID (`uses: owner/action@<sha> # vX.Y.Z`) einbinden.
 
 ---
 
@@ -92,7 +100,7 @@ Die Daten liegen auf dem iPhone des Nutzers. **Ein Fehler in einer Migration kan
 ## 5. Arbeitsweise
 
 - Sprache: Oberfläche, Commit-Messages und Doku auf **Deutsch**; Code-Bezeichner auf Englisch.
-- Kleine, nachvollziehbare Commits; Message beschreibt das *Warum*.
+- Kleine, nachvollziehbare Commits; Message beschreibt das _Warum_.
 - Nach jeder abgeschlossenen Aufgabe den Phasenplan aktualisieren.
 - Bei Unklarheit oder sicherheitsrelevanten Entscheidungen: **erst fragen, dann handeln.**
 
@@ -100,7 +108,10 @@ Die Daten liegen auf dem iPhone des Nutzers. **Ein Fehler in einer Migration kan
 
 ```bash
 npm install          # Abhängigkeiten installieren
+npm run hooks:install # Git-Hook aktivieren (einmalig nach dem Klonen)
 npm run dev          # Entwicklungsserver
 npm run build        # Produktions-Build nach dist/
+npm run preview      # Build lokal ansehen (mit aktiver CSP)
 npm run check        # Alle Prüfungen (Pflicht vor jedem Commit)
+npm run icons        # App-Icons neu erzeugen
 ```
