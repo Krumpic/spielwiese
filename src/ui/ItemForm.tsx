@@ -27,6 +27,8 @@ import {
   countRecipesUsingItem,
   createItem,
   deleteItem,
+  findItemByBarcode,
+  loadProductLookup,
   putItemOnShoppingList,
   updateItem,
 } from "../db/repository.ts";
@@ -34,6 +36,7 @@ import { DEFAULT_SECTION, Field, Segmented, inputClass, numberText } from "./for
 import { EXPIRY_WARNING_DAYS } from "../domain/expiry.ts";
 import { BarcodeScanner } from "./BarcodeScanner.tsx";
 import { BarcodeIcon } from "./icons.tsx";
+import { lookupProduct } from "./productLookup.ts";
 import { runSafely } from "./runSafely.ts";
 
 interface FormState {
@@ -121,6 +124,48 @@ interface ItemFormProps {
 export function ItemForm({ item, defaultLocation, prefill, onDone }: ItemFormProps) {
   const [form, setForm] = useState<FormState>(() => toFormState(item, defaultLocation, prefill));
   const [scanning, setScanning] = useState(false);
+  /** Ergebnis nach dem Scannen im Formular: Hinweis + ggf. Namensvorschlag */
+  const [scanInfo, setScanInfo] = useState<{ text: string; suggestion?: string } | null>(null);
+
+  /**
+   * Barcode im Formular gescannt: Nummer übernehmen und – falls erlaubt – den Namen
+   * bei Open Food Facts nachschlagen. Ein leerer Name wird ausgefüllt, ein schon
+   * eingetippter Name wird nicht überschrieben, sondern nur als Vorschlag angeboten.
+   */
+  const handleScanned = (barcode: string) => {
+    setScanning(false);
+    set("barcode", barcode);
+    setScanInfo(null);
+    runSafely(async () => {
+      const other = await findItemByBarcode(barcode);
+      if (other && other.id !== item?.id) {
+        setScanInfo({ text: `Achtung: Dieser Barcode gehört schon zu „${other.name}“.` });
+        return;
+      }
+      if (!(await loadProductLookup())) return;
+      setScanInfo({ text: "Produktname wird gesucht …" });
+      const result = await lookupProduct(barcode);
+      if (result === "error") {
+        setScanInfo({ text: "Produktsuche gerade nicht erreichbar – Name bitte selbst eingeben." });
+        return;
+      }
+      if (!result.found) {
+        setScanInfo({ text: "Dieses Produkt ist nicht bekannt – Name bitte selbst eingeben." });
+        return;
+      }
+      const details = [result.brand, result.quantity].filter((d) => d !== null).join(", ");
+      const source = `Open Food Facts${details ? ` (${details})` : ""}`;
+      if (form.name.trim() === "") {
+        // Nur füllen, wenn der Name auch jetzt noch leer ist (nie Getipptes überschreiben)
+        setForm((current) =>
+          current.name.trim() === "" ? { ...current, name: result.name } : current,
+        );
+        setScanInfo({ text: `Name von ${source} übernommen – bitte prüfen.` });
+      } else {
+        setScanInfo({ text: `${source} kennt das Produkt als:`, suggestion: result.name });
+      }
+    });
+  };
   const [errors, setErrors] = useState<Map<string, string>>(new Map());
   // Bei neuen Artikeln folgt die Abteilung dem Lagerort, bis sie von Hand gewählt wurde
   const [sectionChosen, setSectionChosen] = useState(item !== null);
@@ -316,7 +361,8 @@ export function ItemForm({ item, defaultLocation, prefill, onDone }: ItemFormPro
         >
           <input
             type="date"
-            className={inputClass}
+            // iOS-Safari: ohne appearance-none hat das Datumsfeld eine feste Mindestbreite
+            className={`${inputClass} appearance-none`}
             value={form.expiresOn}
             min="2000-01-01"
             max="2200-12-31"
@@ -370,6 +416,29 @@ export function ItemForm({ item, defaultLocation, prefill, onDone }: ItemFormPro
         {errors.get("barcode") && (
           <span className="mt-1 block text-sm text-red-700">{errors.get("barcode")}</span>
         )}
+        {scanInfo && (
+          <div className="mt-2 rounded-xl bg-brand-50 p-3 text-sm text-brand-900" role="status">
+            {scanInfo.text}
+            {scanInfo.suggestion !== undefined && (
+              <div className="mt-2 flex items-center justify-between gap-2">
+                <span className="min-w-0 font-semibold wrap-break-word">
+                  „{scanInfo.suggestion}“
+                </span>
+                <button
+                  type="button"
+                  className="min-h-11 shrink-0 rounded-xl bg-brand-800 px-3 font-semibold text-white"
+                  onClick={() => {
+                    if (scanInfo.suggestion === undefined) return;
+                    set("name", scanInfo.suggestion);
+                    setScanInfo({ text: "Name übernommen – bitte prüfen." });
+                  }}
+                >
+                  Übernehmen
+                </button>
+              </div>
+            )}
+          </div>
+        )}
       </div>
 
       {scanning && (
@@ -377,10 +446,7 @@ export function ItemForm({ item, defaultLocation, prefill, onDone }: ItemFormPro
           onClose={() => {
             setScanning(false);
           }}
-          onResult={(barcode) => {
-            setScanning(false);
-            set("barcode", barcode);
-          }}
+          onResult={handleScanned}
         />
       )}
 

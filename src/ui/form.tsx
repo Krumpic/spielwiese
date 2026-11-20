@@ -3,8 +3,13 @@ import type { LocationId, SectionId } from "../domain/constants.ts";
 
 /** Gemeinsame Formular-Bausteine */
 
+/**
+ * min-w-0: Eingabefelder dürfen schmaler werden als ihr „Wunschmaß" – sonst können sie
+ * das Fenster seitlich verschiebbar machen. (Das Datumsfeld bekommt zusätzlich
+ * appearance-none; bei Auswahlfeldern würde das den Pfeil entfernen.)
+ */
 export const inputClass =
-  "w-full rounded-xl border border-stone-300 bg-surface px-3 py-3 text-base outline-none focus:border-brand-700 focus:ring-2 focus:ring-brand-700/20";
+  "block w-full min-w-0 max-w-full rounded-xl border border-stone-300 bg-surface px-3 py-3 text-left text-base outline-none focus:border-brand-700 focus:ring-2 focus:ring-brand-700/20";
 
 /** Vorschlag für die Supermarkt-Abteilung je nach Lagerort */
 export const DEFAULT_SECTION: ReadonlyMap<LocationId, SectionId> = new Map([
@@ -58,7 +63,9 @@ export function Segmented<T extends string>({
           onClick={() => {
             onChange(option.value);
           }}
-          className={`min-h-11 flex-1 rounded-lg px-2 text-sm font-medium ${
+          // min-w-0 + Silbentrennung: lange Wörter („Vorratsschrank") brechen um,
+          // statt den Umschalter über den Rand zu schieben
+          className={`min-h-11 min-w-0 flex-1 rounded-lg px-1.5 py-1 text-sm leading-tight font-medium wrap-break-word hyphens-auto ${
             value === option.value ? "bg-surface text-brand-800 shadow-sm" : "text-stone-600"
           }`}
         >
