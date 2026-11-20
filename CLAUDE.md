@@ -129,5 +129,6 @@ npm run dev          # Entwicklungsserver
 npm run build        # Produktions-Build nach dist/
 npm run preview      # Build lokal ansehen (mit aktiver CSP)
 npm run check        # Alle Prüfungen (Pflicht vor jedem Commit)
+npm run test:e2e     # Alle Browser-Tests (nach größeren Änderungen; Windows + Edge)
 npm run icons        # App-Icons neu erzeugen
 ```

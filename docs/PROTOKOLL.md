@@ -102,7 +102,11 @@ scripts/      Icons, Design-Farben, Test-Starter
 ```
 
 Wichtige Befehle: `npm run dev` · `npm run build` · `npm run preview` · `npm run check` ·
-`npm run icons` · `npm run theme` · nach dem Klonen einmal `npm ci` und `npm run hooks:install`.
+`npm run test:e2e` (alle Browser-Tests) · `npm run icons` · `npm run theme` · nach dem Klonen
+einmal `npm ci` und `npm run hooks:install`.
+
+**Nach größeren Änderungen** zusätzlich zu `npm run check` auch `npm run test:e2e` laufen lassen
+(Details: [tests/e2e/README.md](../tests/e2e/README.md)).
 
 **Vor Änderungen an Datenbank oder Backup-Format:** am iPhone ein Backup machen.
 
@@ -119,8 +123,9 @@ Wichtige Befehle: `npm run dev` · `npm run build` · `npm run preview` · `npm 
 | 4         | Designs, Ablaufdatum, Scanner | 6 Farben + Dunkelmodus. Ein Ablaufdatum pro Artikel. Scanner + Open Food Facts nach Sicherheitsbewertung freigegeben. Statistik → später.                          |
 | Fix       | Fenster & Scan                | Fenster nur senkrecht scrollbar. Scan im Formular übernimmt den Namen.                                                                                             |
 | Abschluss | Review                        | Unabhängiger Review: keine Sicherheitslücke; 2 Datenfehler gefunden und behoben (Obergrenze bei Mengen, Einheiten beim Einkauf).                                   |
+| Abschluss | Browser-Tests im Repo         | Aufnahme mit Lint-Ausnahme freigegeben (nur Regel „Dateizugriff mit variablem Pfad“, nur `tests/e2e/`).                                                            |
 
-**Geprüft beim Abschluss:** 148 automatische Tests, 122 Prüfungen in Browser-Tests (inkl.
+**Geprüft beim Abschluss:** 148 automatische Tests, 149 Prüfungen in Browser-Tests (inkl.
 echter Datenbank-Migration vom Stand Phase 3, Scanner mit künstlicher Kamera, manipulierter
 Open-Food-Facts-Antwort, Überlauf-Messung aller Fenster), `npm audit` 0 Lücken,
 Geheimnis-Scan sauber, Live-Seite mit aktiver CSP und ohne Inline-Skripte.
@@ -134,7 +139,12 @@ Geheimnis-Scan sauber, Live-Seite mit aktiver CSP und ohne Inline-Skripte.
 - **Dateinamen mit „secret“** sind global gesperrt → Konfiguration liegt in `config/leakscan*`.
 - **Lagerort-Namen** enthalten weiche Trennzeichen (`\u00AD`) für saubere Umbrüche.
 - **zxing** schreibt bei Bildern ohne Barcode harmlose Meldungen in die Konsole.
-- **Browser-Tests** (Edge über DevTools-Protokoll) liegen NICHT im Repo – siehe offene Punkte.
+- **Browser-Tests** (`tests/e2e/`, Edge über DevTools-Protokoll) brauchen Windows + Edge und
+  einen freien Port 4173. Anfragen an Open Food Facts werden dort abgefangen. Für diesen Ordner
+  ist die ESLint-Regel `security/detect-non-literal-fs-filename` abgeschaltet (freigegeben).
+- **Neue Felder an Artikeln** brauchen: Schema-Version + upgrade(), Backup-Version +
+  `addItemField`, `testing.ts`, beide Formulare (`ItemForm`, `RecipeForm` → `NewItemInline`)
+  und Migrationstests – siehe Commits zu Ablaufdatum/Barcode als Vorlage.
 
 ## 8. Offene Punkte und Ideen
 
@@ -163,8 +173,6 @@ Geheimnis-Scan sauber, Live-Seite mit aktiver CSP und ohne Inline-Skripte.
   - _Chefkoch_ – keine offizielle Schnittstelle. _Open Food Facts_ hat keine Rezepte.
   - **Empfehlung:** „Rezept einfügen“ – Text aus einer Website/App einfügen, die App erkennt
     Zutaten und Schritte. Ganz ohne externen Dienst, kein Sicherheitsrisiko.
-- **Browser-Tests ins Repo aufnehmen** – braucht eine begründete Lint-Ausnahme für den
-  Testordner (Regeln „Datei an variablen Pfad schreiben“). Nur mit Zustimmung des Nutzers.
 - **Kleinere Punkte aus dem Review (niedrig):** Ladefehler der Datenbank wird nicht angezeigt
   (App bleibt bei „Wird geladen …“); „Rückgängig“ nach dem Kochen überschreibt Änderungen,
   die dazwischen am selben Artikel gemacht wurden.
