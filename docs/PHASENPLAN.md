@@ -61,7 +61,7 @@ Ziel: Das Hauptproblem lösen – „Was habe ich zuhause, was brauche ich?"
 - [x] Nutzer: am iPhone ausprobiert („das funktioniert alles")
 - [ ] Nutzer: in den Branch-Regeln „checks" als Pflicht-Prüfung + „Do not allow bypassing" aktivieren
 
-## Phase 3 – Rezepte 🔄
+## Phase 3 – Rezepte ✅
 
 - [x] Rezepte mit Name, Portionen, Zutaten (aus dem Vorrat gewählt) und nummerierten Schritten
 - [x] Zutat direkt im Rezept neu im Vorrat anlegen
@@ -77,13 +77,39 @@ Ziel: Das Hauptproblem lösen – „Was habe ich zuhause, was brauche ich?"
 - [x] Schema v3 (Tabelle `recipes`) + Migrationstests v1 → v3 und v2 → v3
 - [x] Backup-Format v2 mit Rezepten; Backups v1 bleiben importierbar (Test)
 - [x] Browser-Tests: Rezepte 34, Backup 17, Phase 1 18 Prüfungen – alle grün, keine Konsolen-/CSP-Fehler
-- [ ] Nutzer: am iPhone ausprobieren
+- [x] Nutzer: am iPhone ausprobiert („das ist perfekt")
 
-## Phase 4 – Komfort ⬜
+## Phase 4 – Komfort 🔄
 
-- [ ] Barcode-Scanner (Kamera) + Produktname über Open Food Facts (nur Barcode wird gesendet)
-- [ ] Ablaufdatum + Hinweis auf bald ablaufende Artikel
-- [ ] Verbrauchsstatistik („Was kaufe ich am häufigsten?")
+**Designs**
+
+- [x] 6 Signature-Farben (Tannengrün, Ozeanblau, Beere, Kürbis, Lavendel, Schiefer)
+- [x] Hell / Dunkel / Automatisch (folgt live dem iPhone)
+- [x] Farben als CSS-Variablen, erzeugt aus Tailwind-Paletten (`npm run theme`); Ampelfarben bleiben fest
+- [x] Kein Aufblitzen beim Start; CSP unverändert (keine Inline-Styles)
+
+**Ablaufdatum**
+
+- [x] Ein Datum pro Artikel, Warnung 3 Tage vorher, Hinweis + Filter „Läuft bald ab"
+- [x] Leere Artikel verlieren ihr Datum automatisch (verbraucht, gekocht, Einkauf nach leer)
+- [x] Schema v4 mit upgrade() (erste echte Datenumwandlung), Backup-Format v3
+- [x] Echter Update-Test im Browser: Datenbank im Stand Phase 3 → neue Version
+
+**Barcode-Scanner** (vom Nutzer nach Sicherheitsbewertung freigegeben)
+
+- [x] `@zxing/browser` – geprüft: 0 Lücken, kein eval, keine eigenen Netzwerkaufrufe; wird erst beim Öffnen geladen
+- [x] Rückkamera, Prüfziffer gegen Fehl-Scans, Nummer eintippen als Alternative
+- [x] Bekannter Barcode → Artikel öffnet sich direkt
+- [x] Unbekannt → Open Food Facts (nur die Nummer, kein Cookie/Referrer), Antwort streng geprüft
+- [x] CSP: genau eine zusätzliche Adresse (`connect-src https://world.openfoodfacts.org`), per Test abgesichert
+- [x] Online-Suche in den Einstellungen abschaltbar (dann komplett offline)
+- [x] Schema v5 (Barcode + Index), Backup-Format v4; Backups v1–v3 bleiben importierbar
+- [x] Browser-Test mit Fake-Kamera (echter EAN-13) und manipulierter Antwort → wird nur als Text angezeigt
+
+**Später**
+
+- [ ] Verbrauchsstatistik („Was kaufe ich am häufigsten?") – vom Nutzer auf später verschoben
+- [ ] Nutzer: am iPhone ausprobieren (Kamera-Erlaubnis beim ersten Scan bestätigen)
 
 ## Phase 5 – Angebote (Recherche) ⬜
 

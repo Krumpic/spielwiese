@@ -70,8 +70,15 @@ Der Hook führt `npm run check` automatisch aus und blockiert den Commit bei Feh
 ### Sicherheits-Grundsätze im Code
 
 - **Content Security Policy** per `<meta>` in `index.html`: `default-src 'self'`; nur explizit erlaubte
-  `connect-src` (z. B. später `https://world.openfoodfacts.org`). Kein `unsafe-eval`, kein `unsafe-inline` für Skripte.
+  `connect-src`. Kein `unsafe-eval`, kein `unsafe-inline` für Skripte.
+- **Freigegebene externe Adresse (einzige):** `https://world.openfoodfacts.org` – nur für die
+  Produktsuche per Barcode, es wird ausschließlich die Barcode-Nummer gesendet. Abschaltbar.
+- **Freigegebene Laufzeit-Pakete:** react, react-dom, dexie, zod, `@zxing/browser` +
+  `@zxing/library` (Scanner; nur per dynamischem `import()` laden, nie in die Hauptdatei).
 - Keine Skripte, Fonts oder Styles von CDNs – alles wird mitgebündelt.
+- Farben nur über `brand-*` (Signature-Farbe), `green/amber/red` für Status, `stone-*`/`surface`
+  für Flächen. `src/theme.css` wird erzeugt (`npm run theme`) – nicht von Hand ändern.
+  Keine Inline-Styles (`style=`), keine `dark:`-Klassen nötig.
 - Eindeutiger Datenbankname (`kornspeicher-db`), da sich alle GitHub-Pages-Projekte eines Accounts eine Origin teilen.
 - Fachlogik als reine Funktionen in `src/domain/` (gut testbar), Datenbankzugriffe nur über
   `src/db/repository.ts` (prüft jede Eingabe mit zod), Oberfläche in `src/ui/`.

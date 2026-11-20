@@ -17,8 +17,9 @@ export const BACKUP_FORMAT = "kornspeicher-backup";
  * - 1 (Phase 2): Vorrat + Einkaufsliste
  * - 2 (Phase 3): + Rezepte
  * - 3 (Phase 4): Artikel mit Ablaufdatum (expiresOn)
+ * - 4 (Phase 4): Artikel mit Barcode
  */
-export const BACKUP_VERSION = 3;
+export const BACKUP_VERSION = 4;
 
 /** Obergrenzen gegen absichtlich riesige oder kaputte Dateien */
 export const MAX_BACKUP_BYTES = 5 * 1024 * 1024;
@@ -192,19 +193,22 @@ function upgradeBackup(raw: unknown): unknown {
   // v1 → v2: Rezepte gab es noch nicht
   if (data["version"] === 1) data = { ...data, version: 2, recipes: [] };
   // v2 → v3: Artikel hatten noch kein Ablaufdatum
-  if (data["version"] === 2) {
-    const items = data["items"];
-    data = {
-      ...data,
-      version: 3,
-      items: Array.isArray(items)
-        ? (items as unknown[]).map((item: unknown) =>
-            typeof item === "object" && item !== null && !("expiresOn" in item)
-              ? { ...item, expiresOn: null }
-              : item,
-          )
-        : items,
-    };
-  }
+  if (data["version"] === 2) data = { ...addItemField(data, "expiresOn"), version: 3 };
+  // v3 → v4: Artikel hatten noch keinen Barcode
+  if (data["version"] === 3) data = { ...addItemField(data, "barcode"), version: 4 };
   return data;
+}
+
+/** Ergänzt ein neues Artikel-Feld mit `null`, falls es fehlt */
+function addItemField(data: Record<string, unknown>, field: string): Record<string, unknown> {
+  const items = data["items"];
+  if (!Array.isArray(items)) return data;
+  return {
+    ...data,
+    items: (items as unknown[]).map((item: unknown) =>
+      typeof item === "object" && item !== null && !(field in item)
+        ? { ...item, [field]: null }
+        : item,
+    ),
+  };
 }

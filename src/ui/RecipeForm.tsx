@@ -66,6 +66,7 @@ function NewItemInline({
         targetQuantity: null,
         minLevel: "low",
         expiresOn: null,
+        barcode: null,
       });
       onCreated(id, unit);
     });

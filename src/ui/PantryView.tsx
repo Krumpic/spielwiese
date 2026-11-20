@@ -8,15 +8,27 @@ import {
 } from "../domain/constants.ts";
 import { expiryState, expiryText, todayString, type ExpiryState } from "../domain/expiry.ts";
 import { formatQuantity, needsRestock, type Item } from "../domain/item.ts";
-import { changeLevel, changeQuantity } from "../db/repository.ts";
+import {
+  changeLevel,
+  changeQuantity,
+  findItemByBarcode,
+  loadProductLookup,
+} from "../db/repository.ts";
 import { useItems } from "../db/live.ts";
 import { Header } from "./Header.tsx";
-import { ItemForm } from "./ItemForm.tsx";
+import { BarcodeScanner } from "./BarcodeScanner.tsx";
+import { ItemForm, type ItemPrefill } from "./ItemForm.tsx";
 import { Sheet } from "./Sheet.tsx";
-import { PlusIcon, SearchIcon } from "./icons.tsx";
+import { BarcodeIcon, PlusIcon, SearchIcon } from "./icons.tsx";
+import { lookupProduct } from "./productLookup.ts";
 import { runSafely } from "./runSafely.ts";
 
 type Filter = "all" | "expiring" | LocationId;
+
+type Editing =
+  | { type: "edit"; item: Item; prefill?: ItemPrefill }
+  | { type: "new"; prefill?: ItemPrefill }
+  | null;
 
 const LEVEL_STYLE: ReadonlyMap<Item["level"], string> = new Map([
   ["full", "bg-green-100 text-green-900"],
@@ -110,7 +122,60 @@ export function PantryView({ backupOverdue, onOpenSettings }: PantryViewProps) {
   const items = useItems();
   const [filter, setFilter] = useState<Filter>("all");
   const [search, setSearch] = useState("");
-  const [editing, setEditing] = useState<Item | "new" | null>(null);
+  const [editing, setEditing] = useState<Editing>(null);
+  const [scanning, setScanning] = useState(false);
+  const [lookingUp, setLookingUp] = useState(false);
+
+  /** Nach dem Scan: bekannten Artikel öffnen, sonst Produkt nachschlagen und neu anlegen */
+  const handleScan = (barcode: string) => {
+    setScanning(false);
+    runSafely(async () => {
+      const existing = await findItemByBarcode(barcode);
+      if (existing) {
+        setEditing({
+          type: "edit",
+          item: existing,
+          prefill: { note: "Per Barcode gefunden – Menge anpassen und speichern." },
+        });
+        return;
+      }
+      if (!(await loadProductLookup())) {
+        setEditing({
+          type: "new",
+          prefill: { barcode, note: "Neuer Barcode – bitte Namen eingeben." },
+        });
+        return;
+      }
+      setLookingUp(true);
+      const result = await lookupProduct(barcode).finally(() => {
+        setLookingUp(false);
+      });
+      if (result === "error") {
+        setEditing({
+          type: "new",
+          prefill: {
+            barcode,
+            note: "Die Produktsuche ist gerade nicht erreichbar (offline?). Bitte Namen selbst eingeben.",
+          },
+        });
+      } else if (result.found) {
+        const details = [result.brand, result.quantity].filter((d) => d !== null).join(", ");
+        setEditing({
+          type: "new",
+          prefill: {
+            barcode,
+            name: result.name,
+            note: `Gefunden bei Open Food Facts${details ? ` (${details})` : ""}. Bitte Name, Menge und Lagerort prüfen.`,
+          },
+        });
+      } else {
+        setEditing({
+          type: "new",
+          prefill: { barcode, note: "Dieses Produkt ist nicht bekannt – bitte Namen eingeben." },
+        });
+      }
+    });
+  };
   const [today] = useState(() => todayString(Date.now()));
 
   const expiringCount = (items ?? []).filter((item) => isExpiring(item, today)).length;
@@ -145,18 +210,30 @@ export function PantryView({ backupOverdue, onOpenSettings }: PantryViewProps) {
   return (
     <>
       <Header title="Kornspeicher">
-        <div className="mt-3 flex items-center gap-2 rounded-xl bg-surface px-3 shadow-sm">
-          <SearchIcon className="h-5 w-5 text-stone-400" />
-          <input
-            type="search"
-            className="min-h-11 w-full bg-transparent text-base outline-none"
-            placeholder="Suchen"
-            aria-label="Vorrat durchsuchen"
-            value={search}
-            onChange={(e) => {
-              setSearch(e.target.value);
+        <div className="mt-3 flex gap-2">
+          <div className="flex min-w-0 flex-1 items-center gap-2 rounded-xl bg-surface px-3 shadow-sm">
+            <SearchIcon className="h-5 w-5 text-stone-400" />
+            <input
+              type="search"
+              className="min-h-11 w-full bg-transparent text-base outline-none"
+              placeholder="Suchen"
+              aria-label="Vorrat durchsuchen"
+              value={search}
+              onChange={(e) => {
+                setSearch(e.target.value);
+              }}
+            />
+          </div>
+          <button
+            type="button"
+            aria-label="Barcode scannen"
+            className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-surface text-brand-800 shadow-sm active:bg-stone-200"
+            onClick={() => {
+              setScanning(true);
             }}
-          />
+          >
+            <BarcodeIcon className="h-6 w-6" />
+          </button>
         </div>
         <div className="mt-3 flex gap-2 overflow-x-auto pb-1 [scrollbar-width:none]">
           {filters.map((f) => (
@@ -221,7 +298,7 @@ export function PantryView({ backupOverdue, onOpenSettings }: PantryViewProps) {
               type="button"
               className="mt-6 min-h-12 rounded-xl bg-brand-800 px-6 font-semibold text-white"
               onClick={() => {
-                setEditing("new");
+                setEditing({ type: "new" });
               }}
             >
               Ersten Artikel anlegen
@@ -242,7 +319,7 @@ export function PantryView({ backupOverdue, onOpenSettings }: PantryViewProps) {
                     item={item}
                     today={today}
                     onEdit={() => {
-                      setEditing(item);
+                      setEditing({ type: "edit", item });
                     }}
                   />
                 ))}
@@ -257,21 +334,43 @@ export function PantryView({ backupOverdue, onOpenSettings }: PantryViewProps) {
         aria-label="Neuen Artikel anlegen"
         className="fixed right-5 bottom-[calc(5.5rem+env(safe-area-inset-bottom))] z-30 flex h-14 w-14 items-center justify-center rounded-full bg-brand-800 text-white shadow-lg active:bg-brand-900"
         onClick={() => {
-          setEditing("new");
+          setEditing({ type: "new" });
         }}
       >
         <PlusIcon className="h-7 w-7" />
       </button>
 
+      {scanning && (
+        <BarcodeScanner
+          onResult={handleScan}
+          onClose={() => {
+            setScanning(false);
+          }}
+        />
+      )}
+
+      {lookingUp && (
+        <div
+          className="fixed inset-0 z-60 flex items-center justify-center bg-black/50"
+          role="status"
+        >
+          <p className="rounded-2xl bg-surface px-6 py-4 font-semibold shadow-lg">
+            Produkt wird gesucht …
+          </p>
+        </div>
+      )}
+
       {editing !== null && (
         <Sheet
-          title={editing === "new" ? "Neuer Artikel" : "Artikel bearbeiten"}
+          title={editing.type === "new" ? "Neuer Artikel" : "Artikel bearbeiten"}
           onClose={() => {
             setEditing(null);
           }}
         >
           <ItemForm
-            item={editing === "new" ? null : editing}
+            key={editing.type === "edit" ? editing.item.id : "new"}
+            item={editing.type === "edit" ? editing.item : null}
+            prefill={editing.prefill}
             defaultLocation={filter === "all" || filter === "expiring" ? "pantry" : filter}
             onDone={() => {
               setEditing(null);

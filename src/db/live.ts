@@ -73,6 +73,16 @@ const appearanceStore = createLiveStore<Appearance>(async () => {
   return parseAppearance(theme?.value, colorMode?.value);
 });
 
+const productLookupStore = createLiveStore<boolean>(async () => {
+  const entry = await db.meta.get("productLookup");
+  return entry?.key === "productLookup" ? entry.value : true;
+});
+
+/** Darf online nachgeschlagen werden? (Standard: ja) */
+export function useProductLookup(): boolean | undefined {
+  return useSyncExternalStore(productLookupStore.subscribe, productLookupStore.getSnapshot);
+}
+
 export function useAppearance(): Appearance | undefined {
   return useSyncExternalStore(appearanceStore.subscribe, appearanceStore.getSnapshot);
 }

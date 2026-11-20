@@ -17,7 +17,7 @@ import type { ShoppingEntry } from "../domain/shopping.ts";
 export const DB_NAME = "kornspeicher-db";
 
 /** Aktuelle Schema-Version – bei jeder neuen Version hochzählen (Test prüft das). */
-export const SCHEMA_VERSION = 4;
+export const SCHEMA_VERSION = 5;
 
 /**
  * Einfache Einstellungen/Merkwerte (Tabelle `meta`, Schlüssel = key).
@@ -26,7 +26,9 @@ export const SCHEMA_VERSION = 4;
 export type MetaEntry =
   | { key: "lastBackupAt"; value: number }
   | { key: "theme"; value: ThemeId }
-  | { key: "colorMode"; value: ColorMode };
+  | { key: "colorMode"; value: ColorMode }
+  /** Produktnamen per Barcode bei Open Food Facts nachschlagen (Standard: ja) */
+  | { key: "productLookup"; value: boolean };
 export type MetaKey = MetaEntry["key"];
 
 export class KornspeicherDB extends Dexie {
@@ -72,6 +74,21 @@ export class KornspeicherDB extends Dexie {
           .toCollection()
           .modify((item: Record<string, unknown>) => {
             if (!("expiresOn" in item)) item["expiresOn"] = null;
+          });
+      });
+
+    // ---------- Version 5 (Phase 4): Barcode ----------
+    // Neues Feld `barcode` + Index (Artikel beim Scannen wiederfinden). Bestehende → null.
+    this.version(5)
+      .stores({
+        items: "++id, name, location, section, expiresOn, barcode",
+      })
+      .upgrade(async (tx) => {
+        await tx
+          .table("items")
+          .toCollection()
+          .modify((item: Record<string, unknown>) => {
+            if (!("barcode" in item)) item["barcode"] = null;
           });
       });
   }

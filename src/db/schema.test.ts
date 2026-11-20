@@ -11,10 +11,11 @@ afterEach(async () => {
   await Dexie.delete(TEST_DB);
 });
 
-/** Artikel im Format vor Schema v4 (ohne `expiresOn`) – so liegt er auf alten iPhones */
+/** Artikel im Format vor Schema v4 (ohne `expiresOn`/`barcode`) – so liegt er auf alten iPhones */
 function legacyItem(overrides: Partial<Item>): Partial<Item> {
   const legacy: Partial<Item> = makeItem(overrides);
   delete legacy.expiresOn;
+  delete legacy.barcode;
   return legacy;
 }
 
@@ -22,6 +23,7 @@ function legacyItem(overrides: Partial<Item>): Partial<Item> {
 const FROZEN_V1 = { items: "++id, name, location, section", shopping: "++id, itemId, section" };
 const FROZEN_V2 = { meta: "key" };
 const FROZEN_V3 = { recipes: "++id, name" };
+const FROZEN_V4 = { items: "++id, name, location, section, expiresOn" };
 
 describe("Datenbank-Schema", () => {
   it("SCHEMA_VERSION passt zur höchsten deklarierten Version", () => {
@@ -55,7 +57,7 @@ describe("Migration v1 → aktuell", () => {
     await current.open();
 
     expect(current.verno).toBe(SCHEMA_VERSION);
-    expect(await current.items.toArray()).toEqual([{ ...milk, expiresOn: null }]);
+    expect(await current.items.toArray()).toEqual([{ ...milk, expiresOn: null, barcode: null }]);
     expect(await current.shopping.toArray()).toEqual([entry]);
 
     // 3. Neue Tabellen sind nutzbar
@@ -79,7 +81,7 @@ describe("Migration v2 → aktuell", () => {
     const current = new KornspeicherDB(TEST_DB);
     await current.open();
     expect(current.verno).toBe(SCHEMA_VERSION);
-    expect(await current.items.toArray()).toEqual([{ ...flour, expiresOn: null }]);
+    expect(await current.items.toArray()).toEqual([{ ...flour, expiresOn: null, barcode: null }]);
     expect((await current.meta.get("lastBackupAt"))?.value).toBe(999);
 
     const id = await current.recipes.add({
@@ -95,7 +97,7 @@ describe("Migration v2 → aktuell", () => {
   });
 });
 
-describe("Migration v3 → v4 (Ablaufdatum)", () => {
+describe("Migration v3 → aktuell (Ablaufdatum, Barcode)", () => {
   it("ergänzt expiresOn = null bei allen Artikeln, alles andere bleibt unverändert", async () => {
     const v3 = new Dexie(TEST_DB);
     v3.version(1).stores(FROZEN_V1);
@@ -121,8 +123,10 @@ describe("Migration v3 → v4 (Ablaufdatum)", () => {
 
     const current = new KornspeicherDB(TEST_DB);
     await current.open();
-    expect(current.verno).toBe(4);
-    expect(await current.items.toArray()).toEqual(items.map((i) => ({ ...i, expiresOn: null })));
+    expect(current.verno).toBe(SCHEMA_VERSION);
+    expect(await current.items.toArray()).toEqual(
+      items.map((i) => ({ ...i, expiresOn: null, barcode: null })),
+    );
     expect(await current.recipes.toArray()).toEqual([recipe]);
     expect((await current.meta.get("theme"))?.value).toBe("ocean");
 
@@ -130,6 +134,31 @@ describe("Migration v3 → v4 (Ablaufdatum)", () => {
     await current.items.update(1, { expiresOn: "2026-11-22" });
     const soon = await current.items.where("expiresOn").belowOrEqual("2026-11-23").toArray();
     expect(soon.map((i) => i.name)).toEqual(["Milch"]);
+    current.close();
+  });
+});
+
+describe("Migration v4 → v5 (Barcode)", () => {
+  it("ergänzt barcode = null, Ablaufdaten bleiben erhalten, Barcode-Suche funktioniert", async () => {
+    const v4 = new Dexie(TEST_DB);
+    v4.version(1).stores(FROZEN_V1);
+    v4.version(2).stores(FROZEN_V2);
+    v4.version(3).stores(FROZEN_V3);
+    v4.version(4).stores(FROZEN_V4);
+    const yoghurt: Partial<Item> = makeItem({ id: 1, name: "Joghurt", expiresOn: "2026-11-25" });
+    delete yoghurt.barcode;
+    await v4.table("items").add(yoghurt);
+    v4.close();
+
+    const current = new KornspeicherDB(TEST_DB);
+    await current.open();
+    expect(current.verno).toBe(5);
+    expect(await current.items.toArray()).toEqual([{ ...yoghurt, barcode: null }]);
+
+    await current.items.update(1, { barcode: "3017620422003" });
+    expect((await current.items.where("barcode").equals("3017620422003").first())?.name).toBe(
+      "Joghurt",
+    );
     current.close();
   });
 });

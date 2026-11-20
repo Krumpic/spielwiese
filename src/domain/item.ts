@@ -12,6 +12,7 @@ import {
   type SectionId,
   type Unit,
 } from "./constants.ts";
+import { BarcodeSchema } from "./barcode.ts";
 import { ExpiryDateSchema } from "./expiry.ts";
 
 export type StockMode = "exact" | "level";
@@ -39,6 +40,8 @@ export interface Item {
   minLevel: Level | null;
   /** Nächstes Ablaufdatum "JJJJ-MM-TT" (seit Schema v4); null = keins */
   expiresOn: string | null;
+  /** Barcode (EAN/UPC), um den Artikel beim Scannen wiederzufinden (seit Schema v5) */
+  barcode: string | null;
   createdAt: number;
   updatedAt: number;
 }
@@ -67,6 +70,7 @@ const itemDataShape = {
   targetQuantity: amount.nullable(),
   minLevel: z.enum(LEVEL_IDS).nullable(),
   expiresOn: ExpiryDateSchema.nullable(),
+  barcode: BarcodeSchema.nullable(),
 };
 
 const targetNotBelowMin = (d: { minQuantity: number | null; targetQuantity: number | null }) =>

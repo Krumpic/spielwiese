@@ -47,6 +47,7 @@ describe("Backup – Hin und zurück", () => {
   // Artikel im Format vor Backup v3 – ohne Ablaufdatum (eingefroren)
   const legacyItem: Partial<Item> = { ...item };
   delete legacyItem.expiresOn;
+  delete legacyItem.barcode;
 
   it("altes Backup (Format v1, Phase 2) lässt sich weiterhin importieren", () => {
     const v1 = {
@@ -59,8 +60,8 @@ describe("Backup – Hin und zurück", () => {
     const result = parse(v1);
     expect(result.ok).toBe(true);
     if (result.ok) {
-      expect(result.backup.version).toBe(3);
-      expect(result.backup.items).toEqual([{ ...legacyItem, expiresOn: null }]);
+      expect(result.backup.version).toBe(4);
+      expect(result.backup.items).toEqual([{ ...legacyItem, expiresOn: null, barcode: null }]);
       expect(result.backup.recipes).toEqual([]);
     }
   });
@@ -77,9 +78,34 @@ describe("Backup – Hin und zurück", () => {
     const result = parse(v2);
     expect(result.ok).toBe(true);
     if (result.ok) {
-      expect(result.backup.items).toEqual([{ ...legacyItem, expiresOn: null }]);
+      expect(result.backup.items).toEqual([{ ...legacyItem, expiresOn: null, barcode: null }]);
       expect(result.backup.recipes).toEqual([recipe]);
     }
+  });
+
+  it("altes Backup (Format v3, mit Ablaufdatum, ohne Barcode) lässt sich importieren", () => {
+    const v3 = {
+      format: "kornspeicher-backup",
+      version: 3,
+      exportedAt: NOW,
+      items: [{ ...legacyItem, expiresOn: "2026-12-01" }],
+      shopping: [entry],
+      recipes: [recipe],
+    };
+    const result = parse(v3);
+    expect(result.ok).toBe(true);
+    if (result.ok) {
+      expect(result.backup.items).toEqual([
+        { ...legacyItem, expiresOn: "2026-12-01", barcode: null },
+      ]);
+    }
+  });
+
+  it("Barcode wird mitgesichert und geprüft", () => {
+    const ok = parse({ ...valid(), items: [{ ...item, barcode: "3017620422003" }] });
+    expect(ok.ok && ok.backup.items[0]?.barcode).toBe("3017620422003");
+    expect(parse({ ...valid(), items: [{ ...item, barcode: "3017620422004" }] }).ok).toBe(false);
+    expect(parse({ ...valid(), items: [{ ...item, barcode: "<script>" }] }).ok).toBe(false);
   });
 
   it("Ablaufdatum wird mitgesichert und geprüft", () => {

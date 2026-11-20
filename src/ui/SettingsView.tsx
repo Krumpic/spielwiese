@@ -1,11 +1,12 @@
 import { useEffect, useRef, useState, type ChangeEvent, type ReactNode } from "react";
 import { daysSince } from "../domain/backup.ts";
-import { restoreBackup } from "../db/repository.ts";
+import { restoreBackup, saveProductLookup } from "../db/repository.ts";
 import {
   useAppearance,
   useItems,
   useLastBackupAt,
   useRecipes,
+  useProductLookup,
   useShoppingEntries,
 } from "../db/live.ts";
 import { AppearanceCard } from "./AppearanceCard.tsx";
@@ -29,6 +30,7 @@ export function SettingsView() {
   const entries = useShoppingEntries();
   const recipes = useRecipes();
   const appearance = useAppearance();
+  const productLookup = useProductLookup();
   const lastBackupAt = useLastBackupAt();
   const fileInput = useRef<HTMLInputElement>(null);
   const [persistent, setPersistent] = useState<boolean | null>(null);
@@ -118,6 +120,28 @@ export function SettingsView() {
         </Card>
 
         {appearance && <AppearanceCard appearance={appearance} />}
+
+        <Card title="Barcode-Scanner">
+          <label className="flex min-h-11 items-center gap-3">
+            <input
+              type="checkbox"
+              className="h-6 w-6 shrink-0 accent-brand-700"
+              checked={productLookup ?? true}
+              disabled={productLookup === undefined}
+              onChange={(e) => {
+                const enabled = e.target.checked;
+                runSafely(() => saveProductLookup(enabled));
+              }}
+            />
+            <span className="font-semibold">Produktnamen online nachschlagen</span>
+          </label>
+          <p className="mt-2 text-sm text-stone-600">
+            Bei einem unbekannten Barcode wird <strong>nur die Barcode-Nummer</strong> an Open Food
+            Facts (freie, gemeinnützige Lebensmittel-Datenbank) gesendet. Keine Vorratsdaten, kein
+            Name, keine Cookies. Ausgeschaltet bleibt der Scanner komplett offline – den Namen
+            tippst du dann beim ersten Scan selbst ein.
+          </p>
+        </Card>
 
         <Card title="Speicher">
           <p className="text-sm">
