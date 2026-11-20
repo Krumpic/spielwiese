@@ -1,0 +1,15 @@
+# Ignore-Liste für den Geheimnis-Scanner (secretlint).
+# Geheimnis-Dateien (Punkt + "env") werden absichtlich NICHT gescannt:
+# Sie sind per .gitignore vom Repo ausgeschlossen, und ein Treffer würde
+# ihren Inhalt in der Ausgabe anzeigen.
+.env
+.env.*
+**/.env
+**/.env.*
+
+node_modules/
+dist/
+dev-dist/
+coverage/
+package-lock.json
+public/*.png
