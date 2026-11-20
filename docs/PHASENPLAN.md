@@ -46,7 +46,7 @@ Ziel: Das Hauptproblem lösen – „Was habe ich zuhause, was brauche ich?"
 - [x] Browser-Test des kompletten Ablaufs (18 Prüfungen, keine Konsolen-/CSP-Fehler)
 - [x] Nutzer: auf dem iPhone ausprobiert („gefällt mir richtig gut")
 
-## Phase 2 – Datensicherung 🔄
+## Phase 2 – Datensicherung ✅
 
 - [x] Datenbank-Tests mit `fake-indexeddb` (vom Nutzer freigegeben) inkl. erstem Migrationstest v1 → v2
 - [x] Schema v2: Tabelle `meta` (Zeitpunkt des letzten Backups)
@@ -58,16 +58,26 @@ Ziel: Das Hauptproblem lösen – „Was habe ich zuhause, was brauche ich?"
 - [x] Persistenten Speicher anfragen (`navigator.storage.persist()`) + Anzeige in den Einstellungen
 - [x] CI-Workflow: Prüfungen laufen bei jedem Pull Request (als Pflicht-Prüfung für `main` nutzbar)
 - [x] Browser-Test: Backup → alles löschen → manipulierte/fremde Datei abgelehnt → Wiederherstellen (17 Prüfungen)
-- [ ] Nutzer: am iPhone Backup in iCloud Drive sichern und Wiederherstellen ausprobieren
+- [x] Nutzer: am iPhone ausprobiert („das funktioniert alles")
 - [ ] Nutzer: in den Branch-Regeln „checks" als Pflicht-Prüfung + „Do not allow bypassing" aktivieren
 
-## Phase 3 – Rezepte ⬜
+## Phase 3 – Rezepte 🔄
 
-- [ ] Rezepte mit Zutaten (Verknüpfung zu Vorrats-Artikeln) anlegen
-- [ ] Abgleich: „Was fehlt mir für dieses Rezept?"
-- [ ] Fehlende Zutaten mit einem Tipp auf die Einkaufsliste
-- [ ] „Was kann ich mit meinem Vorrat kochen?"
-- [ ] Optional: „Gekocht"-Knopf zieht Zutaten vom Vorrat ab
+- [x] Rezepte mit Name, Portionen, Zutaten (aus dem Vorrat gewählt) und nummerierten Schritten
+- [x] Zutat direkt im Rezept neu im Vorrat anlegen
+- [x] Einheiten-Umrechnung g↔kg, ml↔l; Auswahl nur kompatibler Einheiten
+- [x] Grundzutaten (Salz, Öl …): blockieren nicht, werden nicht abgezogen
+- [x] Ampel: grün = alles da, gelb = teilweise, rot = nichts da; Liste sortiert, Filter „Kann ich kochen"
+- [x] Portionen umstellbar, Mengen rechnen mit
+- [x] Gelb/Rot: „Fehlende Zutaten auf die Einkaufsliste" (nur Fehlmenge, in Vorrats-Einheit)
+- [x] Grün: „Jetzt kochen" → Abzug vom Vorrat; grob geschätzte Zutaten: „Wie viel ist noch da?"
+- [x] Nach dem Kochen leere Zutaten (ohne Mindestmenge) → Rückfrage, verbrauchte Menge auf die Liste
+- [x] „Rückgängig" nach dem Kochen
+- [x] Artikel löschen warnt, wenn er in Rezepten steckt, und entfernt ihn dort
+- [x] Schema v3 (Tabelle `recipes`) + Migrationstests v1 → v3 und v2 → v3
+- [x] Backup-Format v2 mit Rezepten; Backups v1 bleiben importierbar (Test)
+- [x] Browser-Tests: Rezepte 34, Backup 17, Phase 1 18 Prüfungen – alle grün, keine Konsolen-/CSP-Fehler
+- [ ] Nutzer: am iPhone ausprobieren
 
 ## Phase 4 – Komfort ⬜
 

@@ -1,6 +1,7 @@
 import { liveQuery, type Subscription } from "dexie";
 import { useSyncExternalStore } from "react";
 import type { Item } from "../domain/item.ts";
+import type { Recipe } from "../domain/recipe.ts";
 import type { ShoppingEntry } from "../domain/shopping.ts";
 import { db } from "./schema.ts";
 
@@ -51,6 +52,12 @@ export function useItems(): Item[] | undefined {
 
 export function useShoppingEntries(): ShoppingEntry[] | undefined {
   return useSyncExternalStore(shoppingStore.subscribe, shoppingStore.getSnapshot);
+}
+
+const recipesStore = createLiveStore<Recipe[]>(() => db.recipes.toArray());
+
+export function useRecipes(): Recipe[] | undefined {
+  return useSyncExternalStore(recipesStore.subscribe, recipesStore.getSnapshot);
 }
 
 /** Zeitpunkt des letzten Backups: undefined = lädt noch, null = noch nie */

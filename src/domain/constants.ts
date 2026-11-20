@@ -101,6 +101,32 @@ export function unitInfo(unit: Unit): UnitInfo {
   return UNITS.get(unit) ?? FALLBACK_UNIT;
 }
 
+/** Umrechenbare Einheiten: Faktor zur Basiseinheit (g bzw. ml) */
+const UNIT_BASE: ReadonlyMap<Unit, { dimension: "mass" | "volume"; factor: number }> = new Map([
+  ["g", { dimension: "mass", factor: 1 }],
+  ["kg", { dimension: "mass", factor: 1000 }],
+  ["ml", { dimension: "volume", factor: 1 }],
+  ["l", { dimension: "volume", factor: 1000 }],
+] as const);
+
+/**
+ * Rechnet eine Menge in eine andere Einheit um (g↔kg, ml↔l).
+ * Gleiche Einheit → unverändert. Nicht umrechenbar (z. B. Stück → g) → null.
+ */
+export function convertUnit(quantity: number, from: Unit, to: Unit): number | null {
+  if (from === to) return quantity;
+  const a = UNIT_BASE.get(from);
+  const b = UNIT_BASE.get(to);
+  if (!a || !b) return null;
+  if (a.dimension !== b.dimension) return null;
+  return Math.round(((quantity * a.factor) / b.factor) * 1000) / 1000;
+}
+
+/** Einheiten, in die sich `unit` umrechnen lässt (inklusive sich selbst) */
+export function compatibleUnits(unit: Unit): Unit[] {
+  return UNIT_IDS.filter((other) => convertUnit(1, unit, other) !== null);
+}
+
 // ---------- Füllstände (grobe Schätzung) ----------
 /** Reihenfolge von voll nach leer */
 export const LEVEL_IDS = ["full", "half", "low", "empty"] as const;

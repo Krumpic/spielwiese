@@ -1,6 +1,7 @@
 import { z } from "zod";
 import { SECTION_IDS, UNIT_IDS } from "./constants.ts";
 import { StoredItemSchema, recordId, timestamp, type Item } from "./item.ts";
+import { StoredRecipeSchema, type Recipe } from "./recipe.ts";
 import type { ShoppingEntry } from "./shopping.ts";
 
 /**
@@ -11,19 +12,29 @@ import type { ShoppingEntry } from "./shopping.ts";
  *    dass ältere Backups weiterhin importiert werden können (siehe CLAUDE.md, Abschnitt 4).
  */
 export const BACKUP_FORMAT = "kornspeicher-backup";
-export const BACKUP_VERSION = 1;
+/**
+ * Versionen:
+ * - 1 (Phase 2): Vorrat + Einkaufsliste
+ * - 2 (Phase 3): + Rezepte
+ */
+export const BACKUP_VERSION = 2;
 
 /** Obergrenzen gegen absichtlich riesige oder kaputte Dateien */
 export const MAX_BACKUP_BYTES = 5 * 1024 * 1024;
 const MAX_ITEMS = 5_000;
 const MAX_ENTRIES = 5_000;
+const MAX_RECIPES = 2_000;
 
-export interface Backup {
+export interface BackupData {
+  items: Item[];
+  shopping: ShoppingEntry[];
+  recipes: Recipe[];
+}
+
+export interface Backup extends BackupData {
   format: typeof BACKUP_FORMAT;
   version: typeof BACKUP_VERSION;
   exportedAt: number;
-  items: Item[];
-  shopping: ShoppingEntry[];
 }
 
 const StoredShoppingEntrySchema = z
@@ -40,13 +51,15 @@ const StoredShoppingEntrySchema = z
   })
   .strict();
 
-const BackupV1Schema = z
+/** Schema der AKTUELLEN Version – ältere werden vorher mit `upgradeBackup` umgewandelt */
+const BackupSchema = z
   .object({
     format: z.literal(BACKUP_FORMAT),
-    version: z.literal(1),
+    version: z.literal(BACKUP_VERSION),
     exportedAt: timestamp,
     items: z.array(StoredItemSchema).max(MAX_ITEMS),
     shopping: z.array(StoredShoppingEntrySchema).max(MAX_ENTRIES),
+    recipes: z.array(StoredRecipeSchema).max(MAX_RECIPES),
   })
   .strict()
   .superRefine((backup, ctx) => {
@@ -75,19 +88,29 @@ const BackupV1Schema = z
         return;
       }
     }
+    // Rezepte: eindeutige IDs, Zutaten nur aus dem Vorrat
+    const recipeIds = new Set<number>();
+    for (const recipe of backup.recipes) {
+      if (recipeIds.has(recipe.id)) {
+        ctx.addIssue({ code: "custom", message: "Doppelte Rezept-ID im Backup." });
+        return;
+      }
+      recipeIds.add(recipe.id);
+      if (recipe.ingredients.some((ingredient) => !itemIds.has(ingredient.itemId))) {
+        ctx.addIssue({ code: "custom", message: "Rezept verweist auf unbekannten Artikel." });
+        return;
+      }
+    }
   });
 
-export function createBackup(
-  items: readonly Item[],
-  shopping: readonly ShoppingEntry[],
-  now: number,
-): Backup {
+export function createBackup(data: Readonly<BackupData>, now: number): Backup {
   return {
     format: BACKUP_FORMAT,
     version: BACKUP_VERSION,
     exportedAt: now,
-    items: [...items],
-    shopping: [...shopping],
+    items: [...data.items],
+    shopping: [...data.shopping],
+    recipes: [...data.recipes],
   };
 }
 
@@ -147,7 +170,7 @@ export function parseBackup(text: string): ParseResult {
     };
   }
 
-  const result = BackupV1Schema.safeParse(upgradeBackup(raw));
+  const result = BackupSchema.safeParse(upgradeBackup(raw));
   if (!result.success) {
     const custom = result.error.issues.find((issue) => issue.code === "custom");
     return {
@@ -159,9 +182,13 @@ export function parseBackup(text: string): ParseResult {
 }
 
 /**
- * Bringt ältere Backup-Versionen auf den aktuellen Stand.
- * Aktuell gibt es nur Version 1 – künftige Versionen werden hier Schritt für Schritt umgewandelt.
+ * Bringt ältere Backup-Versionen Schritt für Schritt auf den aktuellen Stand.
+ * Danach wird das Ergebnis trotzdem vollständig gegen das aktuelle Schema geprüft.
  */
 function upgradeBackup(raw: unknown): unknown {
-  return raw;
+  if (typeof raw !== "object" || raw === null) return raw;
+  let data = raw as Record<string, unknown>;
+  // v1 → v2: Rezepte gab es noch nicht
+  if (data["version"] === 1) data = { ...data, version: 2, recipes: [] };
+  return data;
 }

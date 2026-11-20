@@ -1,4 +1,4 @@
-import { useState, type SyntheticEvent, type ReactNode } from "react";
+import { useState, type SyntheticEvent } from "react";
 import {
   LEVEL_IDS,
   LOCATION_IDS,
@@ -17,7 +17,14 @@ import {
   type Unit,
 } from "../domain/constants.ts";
 import { ItemDataSchema, parseDecimal, type Item, type StockMode } from "../domain/item.ts";
-import { createItem, deleteItem, putItemOnShoppingList, updateItem } from "../db/repository.ts";
+import {
+  countRecipesUsingItem,
+  createItem,
+  deleteItem,
+  putItemOnShoppingList,
+  updateItem,
+} from "../db/repository.ts";
+import { DEFAULT_SECTION, Field, Segmented, inputClass, numberText } from "./form.tsx";
 import { runSafely } from "./runSafely.ts";
 
 interface FormState {
@@ -32,14 +39,6 @@ interface FormState {
   targetQuantity: string;
   minLevel: Level | "never";
 }
-
-const DEFAULT_SECTION: ReadonlyMap<LocationId, SectionId> = new Map([
-  ["pantry", "staples"],
-  ["fridge", "dairy"],
-  ["freezer", "frozen"],
-]);
-
-const numberText = (n: number | null) => (n === null ? "" : String(n).replace(".", ","));
 
 function toFormState(item: Item | null, location: LocationId): FormState {
   if (!item) {
@@ -83,63 +82,6 @@ function toItemData(form: FormState) {
     targetQuantity: parseDecimal(form.targetQuantity),
     minLevel: form.minLevel === "never" ? null : form.minLevel,
   };
-}
-
-const inputClass =
-  "w-full rounded-xl border border-stone-300 bg-white px-3 py-3 text-base outline-none focus:border-emerald-700 focus:ring-2 focus:ring-emerald-700/20";
-
-function Field({
-  label,
-  hint,
-  error,
-  children,
-}: {
-  label: string;
-  hint?: string;
-  error?: string | undefined;
-  children: ReactNode;
-}) {
-  return (
-    <label className="block">
-      <span className="mb-1 block text-sm font-semibold text-stone-700">{label}</span>
-      {children}
-      {hint && !error && <span className="mt-1 block text-xs text-stone-500">{hint}</span>}
-      {error && <span className="mt-1 block text-sm text-red-700">{error}</span>}
-    </label>
-  );
-}
-
-function Segmented<T extends string>({
-  options,
-  value,
-  label,
-  onChange,
-}: {
-  options: readonly { value: T; label: string }[];
-  value: T;
-  label: string;
-  onChange: (value: T) => void;
-}) {
-  return (
-    <div role="radiogroup" aria-label={label} className="flex gap-1 rounded-xl bg-stone-100 p-1">
-      {options.map((option) => (
-        <button
-          key={option.value}
-          type="button"
-          role="radio"
-          aria-checked={value === option.value}
-          onClick={() => {
-            onChange(option.value);
-          }}
-          className={`min-h-11 flex-1 rounded-lg px-2 text-sm font-medium ${
-            value === option.value ? "bg-white text-emerald-800 shadow-sm" : "text-stone-600"
-          }`}
-        >
-          {option.label}
-        </button>
-      ))}
-    </div>
-  );
 }
 
 interface ItemFormProps {
@@ -357,8 +299,13 @@ export function ItemForm({ item, defaultLocation, onDone }: ItemFormProps) {
             type="button"
             className="min-h-12 rounded-xl bg-red-50 text-sm font-semibold text-red-700 active:bg-red-100"
             onClick={() => {
-              if (!window.confirm(`„${item.name}“ wirklich löschen?`)) return;
               runSafely(async () => {
+                const usedIn = await countRecipesUsingItem(item.id);
+                const warning =
+                  usedIn > 0
+                    ? `\n\nEr wird in ${String(usedIn)} ${usedIn === 1 ? "Rezept" : "Rezepten"} verwendet und dort als Zutat entfernt.`
+                    : "";
+                if (!window.confirm(`„${item.name}“ wirklich löschen?${warning}`)) return;
                 await deleteItem(item.id);
                 onDone();
               });
