@@ -2,6 +2,7 @@ import { z } from "zod";
 import { UNIT_IDS, convertUnit, unitInfo, type Level, type Unit } from "./constants.ts";
 import {
   clearExpiryIfEmpty,
+  clampAmount,
   isEmpty,
   recordId,
   roundAmount,
@@ -182,7 +183,8 @@ export function missingForShopping(checks: readonly IngredientCheck[]): Shopping
     }
     const missing = state.kind === "partial" ? state.missing : needed;
     const inItemUnit = convertUnit(missing, ingredient.unit, item.unit);
-    if (inItemUnit !== null) needs.push({ item, quantity: inItemUnit });
+    // Begrenzen: z. B. 30 l für 50 Portionen in ml wären sonst über der Obergrenze
+    if (inItemUnit !== null) needs.push({ item, quantity: clampAmount(inItemUnit) });
   }
   return needs;
 }

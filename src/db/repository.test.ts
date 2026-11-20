@@ -265,6 +265,49 @@ describe("Artikel und automatische Einkaufsliste", () => {
   });
 });
 
+describe("Review-Befunde (Regressionstests)", () => {
+  it("Einheit nachträglich geändert (kg → g): Einkauf wird umgerechnet", async () => {
+    await createItem({
+      ...milk,
+      name: "Mehl",
+      unit: "kg",
+      quantity: 0.2,
+      minQuantity: null,
+      targetQuantity: 2,
+    });
+    const flour = await onlyItem();
+    await putItemOnShoppingList(flour.id); // Eintrag: 1,8 kg
+    await updateItem(flour.id, {
+      ...milk,
+      name: "Mehl",
+      unit: "g",
+      quantity: 200,
+      minQuantity: null,
+      targetQuantity: 2000,
+    });
+    const [entry] = await db.shopping.toArray();
+    if (!entry) throw new Error("Eintrag fehlt");
+    await toggleEntry(entry.id);
+    await completePurchase();
+    expect((await onlyItem()).quantity).toBe(2000); // nicht 201,8
+  });
+
+  it("Mengen wachsen nie über die Obergrenze – das Backup bleibt importierbar", async () => {
+    await createItem({
+      ...milk,
+      unit: "g",
+      quantity: 100_000,
+      minQuantity: null,
+      targetQuantity: null,
+    });
+    const item = await onlyItem();
+    await changeQuantity(item.id, 1);
+    expect((await onlyItem()).quantity).toBe(100_000);
+    const parsed = parseBackup(JSON.stringify(await exportBackup()));
+    expect(parsed.ok).toBe(true);
+  });
+});
+
 describe("Einkauf abschließen", () => {
   it("abgehakte Einträge wandern in den Vorrat, nicht abgehakte bleiben", async () => {
     await createItem(milk);

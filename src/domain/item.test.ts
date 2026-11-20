@@ -3,6 +3,7 @@ import {
   ItemDataSchema,
   adjustQuantity,
   applyPurchase,
+  clampAmount,
   cycleLevel,
   formatQuantity,
   needsRestock,
@@ -75,6 +76,14 @@ describe("adjustQuantity", () => {
   });
   it("geht nie unter 0", () => {
     expect(adjustQuantity(makeItem({ unit: "piece", quantity: 0 }), -1, 0).quantity).toBe(0);
+  });
+});
+
+describe("Obergrenze", () => {
+  it("+ und Einkauf wachsen nie über 100 000 (sonst wäre das Backup nicht mehr importierbar)", () => {
+    expect(adjustQuantity(makeItem({ unit: "g", quantity: 100_000 }), 1, 0).quantity).toBe(100_000);
+    expect(applyPurchase(makeItem({ quantity: 99_999 }), 50, 0).quantity).toBe(100_000);
+    expect(clampAmount(-3)).toBe(0);
   });
 });
 

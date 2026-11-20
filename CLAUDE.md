@@ -3,6 +3,8 @@
 Private Progressive Web App (PWA) für das iPhone: virtueller Vorratsschrank, Einkaufsliste, Rezepte.
 Ein einziger Nutzer, Daten liegen **nur lokal auf dem Gerät** (IndexedDB). Kein Backend.
 Phasen und Fortschritt: siehe [docs/PHASENPLAN.md](docs/PHASENPLAN.md).
+**Gesamtstand, Entscheidungen, Eigenheiten und offene Punkte:** [docs/PROTOKOLL.md](docs/PROTOKOLL.md) –
+zu Beginn jeder neuen Sitzung lesen.
 
 Sicherheit hat in diesem Projekt **Vorrang vor Komfort und Geschwindigkeit**.
 

@@ -65,8 +65,8 @@ export function SettingsView() {
       const { backup } = result;
       const confirmed = window.confirm(
         `Backup vom ${dateFormat.format(backup.exportedAt)} wiederherstellen?\n\n` +
-          `Es enthält ${String(backup.items.length)} Artikel und ${String(backup.shopping.length)} Einträge auf der Einkaufsliste.\n\n` +
-          `Achtung: Deine aktuellen Daten (${String(items?.length ?? 0)} Artikel) werden dabei vollständig ersetzt.`,
+          `Es enthält ${String(backup.items.length)} Artikel, ${String(backup.shopping.length)} Einträge auf der Einkaufsliste und ${String(backup.recipes.length)} Rezepte.\n\n` +
+          `Achtung: Deine aktuellen Daten (${String(items?.length ?? 0)} Artikel, ${String(recipes?.length ?? 0)} Rezepte) werden dabei vollständig ersetzt.`,
       );
       if (!confirmed) return;
       await restoreBackup(backup);
@@ -93,7 +93,12 @@ export function SettingsView() {
             onClick={() => {
               if (items === undefined || entries === undefined || recipes === undefined) return;
               runSafely(async () => {
-                await saveBackupFile({ items, shopping: entries, recipes });
+                const outcome = await saveBackupFile({ items, shopping: entries, recipes });
+                if (outcome === "invalid") {
+                  window.alert(
+                    "Das Backup wurde nicht erstellt, weil es sich nicht wieder einlesen ließe. Bitte prüfe ungewöhnlich große Mengen im Vorrat.",
+                  );
+                }
               });
             }}
           >

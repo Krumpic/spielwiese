@@ -9,7 +9,13 @@ interface BarcodeScannerProps {
   onClose: () => void;
 }
 
+/** Der Scanner-Programmteil konnte nicht geladen werden (meist: App wurde gerade aktualisiert) */
+class ScannerLoadError extends Error {}
+
 function cameraErrorMessage(error: unknown): string {
+  if (error instanceof ScannerLoadError) {
+    return "Die App wurde gerade im Hintergrund aktualisiert. Bitte schließe die App und öffne sie neu – dann klappt der Scanner wieder.";
+  }
   const name = error instanceof DOMException ? error.name : "";
   if (name === "NotAllowedError" || name === "SecurityError") {
     return "Kein Kamera-Zugriff. Erlaube die Kamera in den iPhone-Einstellungen (Einstellungen → Safari → Kamera) – oder tippe die Nummer unten ein.";
@@ -46,7 +52,9 @@ export function BarcodeScanner({ onResult, onClose }: BarcodeScannerProps) {
       const [{ BrowserMultiFormatReader }, { BarcodeFormat, DecodeHintType }] = await Promise.all([
         import("@zxing/browser"),
         import("@zxing/library"),
-      ]);
+      ]).catch(() => {
+        throw new ScannerLoadError();
+      });
       const video = videoRef.current;
       if (cancelled || !video) return;
       const hints = new Map<DecodeHint, unknown>([

@@ -1,13 +1,26 @@
 import { z } from "zod";
 import {
   SECTION_IDS,
+  convertUnit,
   sectionLabel,
   sectionOrder,
   unitInfo,
   type SectionId,
   type Unit,
 } from "./constants.ts";
-import { needsRestock, restockQuantity, type Item } from "./item.ts";
+import { clampAmount, needsRestock, restockQuantity, type Item } from "./item.ts";
+
+/**
+ * Wie viel kommt beim Einkauf in den Vorrat – in der AKTUELLEN Einheit des Artikels?
+ * Ein Listeneintrag kann noch die alte Einheit haben (z. B. kg), wenn der Artikel
+ * inzwischen in g geführt wird. Nicht umrechenbar oder ohne Menge → null
+ * (dann gilt die übliche Nachkauf-Menge).
+ */
+export function purchaseAmount(entry: ShoppingEntry, item: Item): number | null {
+  if (item.mode !== "exact" || entry.quantity === null || entry.unit === null) return null;
+  const converted = convertUnit(entry.quantity, entry.unit, item.unit);
+  return converted === null ? null : clampAmount(converted);
+}
 
 /**
  * Ein Eintrag auf der Einkaufsliste.
