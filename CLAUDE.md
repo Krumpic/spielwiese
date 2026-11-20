@@ -98,6 +98,9 @@ Die Daten liegen auf dem iPhone des Nutzers. **Ein Fehler in einer Migration kan
 4. Für jede Migration gibt es einen Test: Daten im alten Format anlegen → migrieren → Ergebnis prüfen.
 5. Das Backup-Format (Export/Import) hat eine eigene Versionsnummer; ältere Backups müssen importierbar bleiben.
 6. Vor dem Commit prüfen: Schema geändert? → Version erhöht? → Upgrade + Test vorhanden? → Backup-Format angepasst?
+7. Migrationstests in `src/db/schema.test.ts`: Die alte Schema-Definition wird dort **eingefroren**
+   nachgebaut, mit Daten befüllt und dann mit `KornspeicherDB` geöffnet. `SCHEMA_VERSION` mitziehen.
+8. Datenbank-Tests nutzen `fake-indexeddb` (nur Entwicklung, landet nicht in der App).
 
 ---
 

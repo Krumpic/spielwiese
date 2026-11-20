@@ -11,6 +11,7 @@ import {
   planShoppingSync,
   type NewShoppingEntry,
 } from "../domain/shopping.ts";
+import { createBackup, type Backup } from "../domain/backup.ts";
 import { db } from "./schema.ts";
 
 /**
@@ -128,6 +129,34 @@ export async function toggleEntry(id: number): Promise<void> {
 
 export async function removeEntry(id: number): Promise<void> {
   await db.shopping.delete(id);
+}
+
+// ---------- Datensicherung ----------
+
+/** Erstellt ein Backup aller Daten und merkt sich den Zeitpunkt. */
+export async function exportBackup(): Promise<Backup> {
+  const now = Date.now();
+  return db.transaction("r", db.items, db.shopping, async () =>
+    createBackup(await db.items.toArray(), await db.shopping.toArray(), now),
+  );
+}
+
+export async function markBackupDone(): Promise<void> {
+  await db.meta.put({ key: "lastBackupAt", value: Date.now() });
+}
+
+/**
+ * Ersetzt ALLE Daten durch das Backup – in einer Transaktion:
+ * Schlägt etwas fehl, bleiben die bisherigen Daten vollständig erhalten.
+ * Das Backup muss vorher mit `parseBackup` geprüft worden sein.
+ */
+export async function restoreBackup(backup: Backup): Promise<void> {
+  await db.transaction("rw", db.items, db.shopping, async () => {
+    await db.items.clear();
+    await db.shopping.clear();
+    await db.items.bulkAdd(backup.items);
+    await db.shopping.bulkAdd(backup.shopping);
+  });
 }
 
 /** Alle abgehakten Einträge in den Vorrat übernehmen und von der Liste entfernen. */

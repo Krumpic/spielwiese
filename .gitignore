@@ -10,6 +10,7 @@ secrets/
 credentials*.json
 
 # ===== Persönliche Daten (Backups/Exporte aus der App) =====
+kornspeicher-backup*.json
 vorrat-backup*.json
 *.backup.json
 exports/

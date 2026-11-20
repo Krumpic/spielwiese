@@ -28,7 +28,7 @@ Ziel: Ein leeres, aber abgesichertes Projekt, das sich auf dem iPhone installier
 
 **Ergebnis:** Leere App mit Icon auf dem iPhone-Home-Bildschirm, startet offline.
 
-## Phase 1 – Vorrat & Einkaufsliste (MVP) 🔄
+## Phase 1 – Vorrat & Einkaufsliste (MVP) ✅
 
 Ziel: Das Hauptproblem lösen – „Was habe ich zuhause, was brauche ich?"
 
@@ -44,16 +44,22 @@ Ziel: Das Hauptproblem lösen – „Was habe ich zuhause, was brauche ich?"
 - [x] Suche und Filter nach Lagerort
 - [x] Handy-optimierte Oberfläche (große Buttons, Daumen-Bedienung, Safe-Area)
 - [x] Browser-Test des kompletten Ablaufs (18 Prüfungen, keine Konsolen-/CSP-Fehler)
-- [ ] Nutzer: auf dem iPhone ausprobieren und Feedback geben
-- [ ] Offen (mit Nutzer klären): Datenbank-Tests mit `fake-indexeddb` (neues Dev-Paket)
+- [x] Nutzer: auf dem iPhone ausprobiert („gefällt mir richtig gut")
 
-## Phase 2 – Datensicherung ⬜
+## Phase 2 – Datensicherung 🔄
 
-- [ ] Export als JSON-Datei (über iOS-Teilen-Dialog → Dateien/iCloud Drive)
-- [ ] Import mit zod-Validierung, Vorschau und Bestätigung
-- [ ] Versioniertes Backup-Format + Tests mit alten Backups
-- [ ] Erinnerung an regelmäßiges Backup
-- [ ] Persistenten Speicher anfragen (`navigator.storage.persist()`)
+- [x] Datenbank-Tests mit `fake-indexeddb` (vom Nutzer freigegeben) inkl. erstem Migrationstest v1 → v2
+- [x] Schema v2: Tabelle `meta` (Zeitpunkt des letzten Backups)
+- [x] Export als JSON-Datei: iOS-Teilen-Dialog → Dateien/iCloud Drive, sonst Download als Ersatz
+- [x] Import: Größenlimit, strenge zod-Prüfung (unbekannte Felder, IDs, Verweise), Vorschau + Bestätigung,
+      Ersetzen in einer Transaktion (bei Fehler bleibt alles beim Alten)
+- [x] Versioniertes Backup-Format (v1), neuere Versionen werden mit Hinweis abgelehnt
+- [x] Erinnerung nach 14 Tagen ohne Backup (Hinweis im Vorrat + roter Punkt am Tab)
+- [x] Persistenten Speicher anfragen (`navigator.storage.persist()`) + Anzeige in den Einstellungen
+- [x] CI-Workflow: Prüfungen laufen bei jedem Pull Request (als Pflicht-Prüfung für `main` nutzbar)
+- [x] Browser-Test: Backup → alles löschen → manipulierte/fremde Datei abgelehnt → Wiederherstellen (17 Prüfungen)
+- [ ] Nutzer: am iPhone Backup in iCloud Drive sichern und Wiederherstellen ausprobieren
+- [ ] Nutzer: in den Branch-Regeln „checks" als Pflicht-Prüfung + „Do not allow bypassing" aktivieren
 
 ## Phase 3 – Rezepte ⬜
 
