@@ -4,10 +4,16 @@ import { parseBackup } from "../domain/backup.ts";
 import type { ItemData } from "../domain/item.ts";
 import {
   addManualEntry,
+  addMissingIngredientsToShoppingList,
   changeQuantity,
   completePurchase,
+  cookRecipe,
+  countRecipesUsingItem,
   createItem,
+  createRecipe,
   deleteItem,
+  putItemsOnShoppingList,
+  undoCooking,
   exportBackup,
   markBackupDone,
   putItemOnShoppingList,
@@ -42,6 +48,126 @@ beforeEach(async () => {
   await db.items.clear();
   await db.shopping.clear();
   await db.meta.clear();
+  await db.recipes.clear();
+});
+
+/** Legt einen Artikel an und gibt ihn zurück */
+const addItem = async (data: Partial<ItemData>) => {
+  await createItem({ ...milk, minQuantity: null, targetQuantity: null, ...data });
+  const item = await db.items
+    .where("name")
+    .equals(data.name ?? milk.name)
+    .first();
+  if (!item) throw new Error("Artikel fehlt");
+  return item;
+};
+
+describe("Rezepte", () => {
+  it("Zutaten müssen im Vorrat existieren", async () => {
+    await expect(
+      createRecipe({
+        name: "X",
+        servings: 1,
+        ingredients: [{ itemId: 999, quantity: 1, unit: "l", basic: false }],
+        steps: [],
+      }),
+    ).rejects.toThrow();
+    expect(await db.recipes.count()).toBe(0);
+  });
+
+  it("fehlende Zutaten: nur die Fehlmenge, in der Einheit des Vorrats", async () => {
+    const mince = await addItem({
+      name: "Faschiertes",
+      unit: "kg",
+      quantity: 0.2,
+      section: "meat",
+    });
+    const pasta = await addItem({ name: "Nudeln", unit: "g", quantity: 1000, section: "staples" });
+    const id = await createRecipe({
+      name: "Bolognese",
+      servings: 4,
+      ingredients: [
+        { itemId: mince.id, quantity: 500, unit: "g", basic: false },
+        { itemId: pasta.id, quantity: 500, unit: "g", basic: false },
+      ],
+      steps: ["Kochen"],
+    });
+
+    expect(await addMissingIngredientsToShoppingList(id, 4)).toBe(1);
+    const entries = await db.shopping.toArray();
+    expect(entries).toHaveLength(1);
+    expect(entries[0]).toMatchObject({ itemId: mince.id, quantity: 0.3, unit: "kg" });
+  });
+
+  it("erhöht einen bestehenden automatischen Eintrag statt ihn zu verdoppeln", async () => {
+    // Mindestmenge 2 l, Soll 3 l, 1 l da → automatischer Eintrag über 2 l
+    const item = await addItem({ quantity: 1, minQuantity: 2, targetQuantity: 3 });
+    const id = await createRecipe({
+      name: "Pudding",
+      servings: 1,
+      ingredients: [{ itemId: item.id, quantity: 4, unit: "l", basic: false }],
+      steps: [],
+    });
+    await addMissingIngredientsToShoppingList(id, 1);
+    const entries = await db.shopping.toArray();
+    expect(entries).toHaveLength(1);
+    expect(entries[0]).toMatchObject({ quantity: 3, source: "manual" });
+  });
+
+  it("Kochen zieht ab, fragt bei Leerem nach und lässt sich rückgängig machen", async () => {
+    const eggs = await addItem({ name: "Eier", unit: "piece", quantity: 2 });
+    const butter = await addItem({ name: "Butter", unit: "g", quantity: 250, minQuantity: 200 });
+    const flour = await addItem({ name: "Mehl", mode: "level", level: "full" });
+    const id = await createRecipe({
+      name: "Kuchen",
+      servings: 1,
+      ingredients: [
+        { itemId: eggs.id, quantity: 2, unit: "piece", basic: false },
+        { itemId: butter.id, quantity: 100, unit: "g", basic: false },
+        { itemId: flour.id, quantity: null, unit: null, basic: false },
+      ],
+      steps: [],
+    });
+
+    const result = await cookRecipe(id, 1, new Map([[flour.id, "low"]]));
+    const after = new Map((await db.items.toArray()).map((i) => [i.name, i]));
+    expect(after.get("Eier")?.quantity).toBe(0);
+    expect(after.get("Butter")?.quantity).toBe(150);
+    expect(after.get("Mehl")?.level).toBe("low");
+    // Butter fällt unter die Mindestmenge → automatisch auf der Liste, daher keine Rückfrage
+    // … und kommen mit der verbrauchten Menge (2 Eier) auf die Liste
+    expect(result.emptied.map(({ item, quantity }) => [item.name, quantity])).toEqual([
+      ["Eier", 2],
+    ]);
+    expect((await db.shopping.toArray()).map((e) => e.name)).toEqual(["Butter"]);
+
+    await putItemsOnShoppingList(
+      result.emptied.map(({ item, quantity }) => ({ itemId: item.id, quantity })),
+    );
+    expect(await db.shopping.count()).toBe(2);
+    expect((await db.shopping.toArray()).find((e) => e.name === "Eier")?.quantity).toBe(2);
+
+    await undoCooking(result.before);
+    const undone = new Map((await db.items.toArray()).map((i) => [i.name, i]));
+    expect(undone.get("Eier")?.quantity).toBe(2);
+    expect(undone.get("Butter")?.quantity).toBe(250);
+    expect(undone.get("Mehl")?.level).toBe("full");
+    // Der automatische Butter-Eintrag verschwindet wieder, der bestätigte Eier-Eintrag bleibt
+    expect((await db.shopping.toArray()).map((e) => e.name)).toEqual(["Eier"]);
+  });
+
+  it("Löschen eines Artikels entfernt ihn aus Rezepten", async () => {
+    const eggs = await addItem({ name: "Eier", unit: "piece", quantity: 2 });
+    const id = await createRecipe({
+      name: "Spiegelei",
+      servings: 1,
+      ingredients: [{ itemId: eggs.id, quantity: 1, unit: "piece", basic: false }],
+      steps: [],
+    });
+    expect(await countRecipesUsingItem(eggs.id)).toBe(1);
+    await deleteItem(eggs.id);
+    expect((await db.recipes.get(id))?.ingredients).toEqual([]);
+  });
 });
 
 describe("Artikel und automatische Einkaufsliste", () => {
@@ -115,11 +241,24 @@ describe("Backup", () => {
   it("Export → Import stellt exakt denselben Stand wieder her", async () => {
     await createItem(milk);
     await addManualEntry({ name: "Brot", section: "bakery" });
-    const before = { items: await db.items.toArray(), shopping: await db.shopping.toArray() };
+    const [stored] = await db.items.toArray();
+    if (!stored) throw new Error("Artikel fehlt");
+    await createRecipe({
+      name: "Kakao",
+      servings: 1,
+      ingredients: [{ itemId: stored.id, quantity: 250, unit: "ml", basic: false }],
+      steps: ["Milch erwärmen", "Kakao einrühren"],
+    });
+    const before = {
+      items: await db.items.toArray(),
+      shopping: await db.shopping.toArray(),
+      recipes: await db.recipes.toArray(),
+    };
 
     const json = JSON.stringify(await exportBackup());
     await db.items.clear();
     await db.shopping.clear();
+    await db.recipes.clear();
 
     const parsed = parseBackup(json);
     expect(parsed.ok).toBe(true);
@@ -128,6 +267,7 @@ describe("Backup", () => {
 
     expect(await db.items.toArray()).toEqual(before.items);
     expect(await db.shopping.toArray()).toEqual(before.shopping);
+    expect(await db.recipes.toArray()).toEqual(before.recipes);
   });
 
   it("Import ersetzt vorhandene Daten vollständig", async () => {

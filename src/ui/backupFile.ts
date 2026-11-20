@@ -3,10 +3,9 @@ import {
   backupFileName,
   createBackup,
   parseBackup,
+  type BackupData,
   type ParseResult,
 } from "../domain/backup.ts";
-import type { Item } from "../domain/item.ts";
-import type { ShoppingEntry } from "../domain/shopping.ts";
 import { markBackupDone } from "../db/repository.ts";
 
 export type ShareOutcome = "saved" | "cancelled";
@@ -30,11 +29,8 @@ function download(file: File): void {
  * Wichtig: Die Datei wird SOFORT aus den bereits geladenen Daten gebaut (kein Warten auf
  * die Datenbank). Safari erlaubt das Teilen nur unmittelbar nach dem Antippen.
  */
-export async function saveBackupFile(
-  items: readonly Item[],
-  shopping: readonly ShoppingEntry[],
-): Promise<ShareOutcome> {
-  const backup = createBackup(items, shopping, Date.now());
+export async function saveBackupFile(data: BackupData): Promise<ShareOutcome> {
+  const backup = createBackup(data, Date.now());
   const name = backupFileName(backup.exportedAt);
   const file = new File([JSON.stringify(backup, null, 2)], name, { type: "application/json" });
 

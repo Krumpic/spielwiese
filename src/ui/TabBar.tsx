@@ -1,7 +1,7 @@
 import type { ReactNode } from "react";
-import { CartIcon, PantryIcon, SettingsIcon } from "./icons.tsx";
+import { BookIcon, CartIcon, PantryIcon, SettingsIcon } from "./icons.tsx";
 
-export type Tab = "pantry" | "shopping" | "settings";
+export type Tab = "pantry" | "shopping" | "recipes" | "settings";
 
 interface TabBarProps {
   active: Tab;
@@ -65,6 +65,13 @@ export function TabBar({ active, shoppingCount, settingsAlert, onChange }: TabBa
             )}
           </span>
         }
+        onChange={onChange}
+      />
+      <TabButton
+        tab="recipes"
+        active={active}
+        label="Rezepte"
+        icon={<BookIcon className="h-6 w-6" />}
         onChange={onChange}
       />
       <TabButton

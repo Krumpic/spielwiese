@@ -1,5 +1,6 @@
 import Dexie, { type EntityTable } from "dexie";
 import type { Item } from "../domain/item.ts";
+import type { Recipe } from "../domain/recipe.ts";
 import type { ShoppingEntry } from "../domain/shopping.ts";
 
 /**
@@ -15,7 +16,7 @@ import type { ShoppingEntry } from "../domain/shopping.ts";
 export const DB_NAME = "kornspeicher-db";
 
 /** Aktuelle Schema-Version – bei jeder neuen Version hochzählen (Test prüft das). */
-export const SCHEMA_VERSION = 2;
+export const SCHEMA_VERSION = 3;
 
 /** Einfache Einstellungen/Merkwerte, z. B. Zeitpunkt des letzten Backups */
 export interface MetaEntry {
@@ -29,6 +30,7 @@ export class KornspeicherDB extends Dexie {
   declare items: EntityTable<Item, "id">;
   declare shopping: EntityTable<ShoppingEntry, "id">;
   declare meta: EntityTable<MetaEntry, "key">;
+  declare recipes: EntityTable<Recipe, "id">;
 
   constructor(name: string = DB_NAME) {
     super(name);
@@ -45,6 +47,12 @@ export class KornspeicherDB extends Dexie {
     // Nur eine neue Tabelle; bestehende Daten bleiben unverändert → kein upgrade() nötig.
     this.version(2).stores({
       meta: "key",
+    });
+
+    // ---------- Version 3 (Phase 3): Rezepte ----------
+    // Zutaten und Schritte liegen als Listen im Rezept. Nur neue Tabelle → kein upgrade() nötig.
+    this.version(3).stores({
+      recipes: "++id, name",
     });
   }
 }

@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState, type ChangeEvent, type ReactNode } from "react";
 import { daysSince } from "../domain/backup.ts";
 import { restoreBackup } from "../db/repository.ts";
-import { useItems, useLastBackupAt, useShoppingEntries } from "../db/live.ts";
+import { useItems, useLastBackupAt, useRecipes, useShoppingEntries } from "../db/live.ts";
 import { Header } from "./Header.tsx";
 import { readBackupFile, requestPersistentStorage, saveBackupFile } from "./backupFile.ts";
 import { runSafely } from "./runSafely.ts";
@@ -20,6 +20,7 @@ function Card({ title, children }: { title: string; children: ReactNode }) {
 export function SettingsView() {
   const items = useItems();
   const entries = useShoppingEntries();
+  const recipes = useRecipes();
   const lastBackupAt = useLastBackupAt();
   const fileInput = useRef<HTMLInputElement>(null);
   const [persistent, setPersistent] = useState<boolean | null>(null);
@@ -78,11 +79,11 @@ export function SettingsView() {
           <button
             type="button"
             className="mt-4 min-h-12 w-full rounded-xl bg-emerald-800 font-semibold text-white active:bg-emerald-900"
-            disabled={items === undefined || entries === undefined}
+            disabled={items === undefined || entries === undefined || recipes === undefined}
             onClick={() => {
-              if (items === undefined || entries === undefined) return;
+              if (items === undefined || entries === undefined || recipes === undefined) return;
               runSafely(async () => {
-                await saveBackupFile(items, entries);
+                await saveBackupFile({ items, shopping: entries, recipes });
               });
             }}
           >

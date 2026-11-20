@@ -2,6 +2,7 @@ import { useState } from "react";
 import { isBackupOverdue } from "./domain/backup.ts";
 import { useItems, useLastBackupAt, useShoppingEntries } from "./db/live.ts";
 import { PantryView } from "./ui/PantryView.tsx";
+import { RecipesView } from "./ui/RecipesView.tsx";
 import { SettingsView } from "./ui/SettingsView.tsx";
 import { ShoppingView } from "./ui/ShoppingView.tsx";
 import { TabBar, type Tab } from "./ui/TabBar.tsx";
@@ -30,6 +31,7 @@ export function App() {
         />
       )}
       {tab === "shopping" && <ShoppingView />}
+      {tab === "recipes" && <RecipesView />}
       {tab === "settings" && <SettingsView />}
       <TabBar
         active={tab}

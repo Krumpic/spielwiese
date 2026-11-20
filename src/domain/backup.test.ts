@@ -7,13 +7,25 @@ import {
   isBackupOverdue,
   parseBackup,
 } from "./backup.ts";
+import type { Recipe } from "./recipe.ts";
 import { makeEntry, makeItem } from "./testing.ts";
 
 const NOW = Date.UTC(2026, 10, 20, 12, 0, 0);
 const item = makeItem({ id: 1, createdAt: NOW, updatedAt: NOW });
 const entry = makeEntry({ id: 10, itemId: 1, createdAt: NOW });
+const recipe: Recipe = {
+  id: 3,
+  name: "Milchreis",
+  servings: 2,
+  ingredients: [{ itemId: 1, quantity: 0.5, unit: "l", basic: false }],
+  steps: ["Milch aufkochen", "Reis einrühren"],
+  createdAt: NOW,
+  updatedAt: NOW,
+};
 const valid = () =>
-  JSON.parse(JSON.stringify(createBackup([item], [entry], NOW))) as Record<string, unknown>;
+  JSON.parse(
+    JSON.stringify(createBackup({ items: [item], shopping: [entry], recipes: [recipe] }, NOW)),
+  ) as Record<string, unknown>;
 const parse = (value: unknown) => parseBackup(JSON.stringify(value));
 
 describe("Backup – Hin und zurück", () => {
@@ -23,11 +35,51 @@ describe("Backup – Hin und zurück", () => {
     if (result.ok) {
       expect(result.backup.items).toEqual([item]);
       expect(result.backup.shopping).toEqual([entry]);
+      expect(result.backup.recipes).toEqual([recipe]);
     }
   });
 
   it("leeres Backup ist gültig", () => {
-    expect(parse(createBackup([], [], NOW)).ok).toBe(true);
+    expect(parse(createBackup({ items: [], shopping: [], recipes: [] }, NOW)).ok).toBe(true);
+  });
+
+  it("altes Backup (Format v1, ohne Rezepte) lässt sich weiterhin importieren", () => {
+    // So sieht ein Backup aus Phase 2 aus – eingefroren
+    const v1 = {
+      format: "kornspeicher-backup",
+      version: 1,
+      exportedAt: NOW,
+      items: [item],
+      shopping: [entry],
+    };
+    const result = parse(v1);
+    expect(result.ok).toBe(true);
+    if (result.ok) {
+      expect(result.backup.version).toBe(2);
+      expect(result.backup.items).toEqual([item]);
+      expect(result.backup.recipes).toEqual([]);
+    }
+  });
+
+  it("altes Backup v1 mit Manipulation wird trotzdem abgelehnt", () => {
+    const v1 = {
+      format: "kornspeicher-backup",
+      version: 1,
+      exportedAt: NOW,
+      items: [{ ...item, quantity: -1 }],
+      shopping: [],
+    };
+    expect(parse(v1).ok).toBe(false);
+  });
+
+  it("lehnt Rezepte ab, die auf unbekannte Artikel verweisen", () => {
+    const bad = {
+      ...valid(),
+      recipes: [{ ...recipe, ingredients: [{ itemId: 99, quantity: 1, unit: "l", basic: false }] }],
+    };
+    const result = parse(bad);
+    expect(result.ok).toBe(false);
+    if (!result.ok) expect(result.error).toContain("unbekannten Artikel");
   });
 
   it("Dateiname enthält das Datum", () => {
