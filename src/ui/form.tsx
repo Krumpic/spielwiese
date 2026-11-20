@@ -4,7 +4,7 @@ import type { LocationId, SectionId } from "../domain/constants.ts";
 /** Gemeinsame Formular-Bausteine */
 
 export const inputClass =
-  "w-full rounded-xl border border-stone-300 bg-white px-3 py-3 text-base outline-none focus:border-emerald-700 focus:ring-2 focus:ring-emerald-700/20";
+  "w-full rounded-xl border border-stone-300 bg-surface px-3 py-3 text-base outline-none focus:border-brand-700 focus:ring-2 focus:ring-brand-700/20";
 
 /** Vorschlag für die Supermarkt-Abteilung je nach Lagerort */
 export const DEFAULT_SECTION: ReadonlyMap<LocationId, SectionId> = new Map([
@@ -59,7 +59,7 @@ export function Segmented<T extends string>({
             onChange(option.value);
           }}
           className={`min-h-11 flex-1 rounded-lg px-2 text-sm font-medium ${
-            value === option.value ? "bg-white text-emerald-800 shadow-sm" : "text-stone-600"
+            value === option.value ? "bg-surface text-brand-800 shadow-sm" : "text-stone-600"
           }`}
         >
           {option.label}

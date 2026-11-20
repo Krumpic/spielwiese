@@ -11,6 +11,12 @@ import {
   planShoppingSync,
   type NewShoppingEntry,
 } from "../domain/shopping.ts";
+import {
+  ColorModeSchema,
+  ThemeIdSchema,
+  parseAppearance,
+  type Appearance,
+} from "../domain/appearance.ts";
 import { createBackup, type Backup } from "../domain/backup.ts";
 import type { Level } from "../domain/constants.ts";
 import {
@@ -179,6 +185,21 @@ export async function exportBackup(): Promise<Backup> {
 
 export async function markBackupDone(): Promise<void> {
   await db.meta.put({ key: "lastBackupAt", value: Date.now() });
+}
+
+// ---------- Erscheinungsbild ----------
+
+export async function loadAppearance(): Promise<Appearance> {
+  const [theme, colorMode] = await db.meta.bulkGet(["theme", "colorMode"]);
+  return parseAppearance(theme?.value, colorMode?.value);
+}
+
+export async function saveTheme(input: unknown): Promise<void> {
+  await db.meta.put({ key: "theme", value: ThemeIdSchema.parse(input) });
+}
+
+export async function saveColorMode(input: unknown): Promise<void> {
+  await db.meta.put({ key: "colorMode", value: ColorModeSchema.parse(input) });
 }
 
 /**

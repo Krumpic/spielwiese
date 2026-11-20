@@ -1,7 +1,14 @@
 import { useEffect, useRef, useState, type ChangeEvent, type ReactNode } from "react";
 import { daysSince } from "../domain/backup.ts";
 import { restoreBackup } from "../db/repository.ts";
-import { useItems, useLastBackupAt, useRecipes, useShoppingEntries } from "../db/live.ts";
+import {
+  useAppearance,
+  useItems,
+  useLastBackupAt,
+  useRecipes,
+  useShoppingEntries,
+} from "../db/live.ts";
+import { AppearanceCard } from "./AppearanceCard.tsx";
 import { Header } from "./Header.tsx";
 import { readBackupFile, requestPersistentStorage, saveBackupFile } from "./backupFile.ts";
 import { runSafely } from "./runSafely.ts";
@@ -10,7 +17,7 @@ const dateFormat = new Intl.DateTimeFormat("de-AT", { dateStyle: "long", timeSty
 
 function Card({ title, children }: { title: string; children: ReactNode }) {
   return (
-    <section className="mt-4 rounded-2xl bg-white p-4 shadow-sm">
+    <section className="mt-4 rounded-2xl bg-surface p-4 shadow-sm">
       <h2 className="mb-2 text-lg font-bold">{title}</h2>
       {children}
     </section>
@@ -21,6 +28,7 @@ export function SettingsView() {
   const items = useItems();
   const entries = useShoppingEntries();
   const recipes = useRecipes();
+  const appearance = useAppearance();
   const lastBackupAt = useLastBackupAt();
   const fileInput = useRef<HTMLInputElement>(null);
   const [persistent, setPersistent] = useState<boolean | null>(null);
@@ -78,7 +86,7 @@ export function SettingsView() {
           </p>
           <button
             type="button"
-            className="mt-4 min-h-12 w-full rounded-xl bg-emerald-800 font-semibold text-white active:bg-emerald-900"
+            className="mt-4 min-h-12 w-full rounded-xl bg-brand-800 font-semibold text-white active:bg-brand-900"
             disabled={items === undefined || entries === undefined || recipes === undefined}
             onClick={() => {
               if (items === undefined || entries === undefined || recipes === undefined) return;
@@ -108,6 +116,8 @@ export function SettingsView() {
             onChange={onFileChosen}
           />
         </Card>
+
+        {appearance && <AppearanceCard appearance={appearance} />}
 
         <Card title="Speicher">
           <p className="text-sm">

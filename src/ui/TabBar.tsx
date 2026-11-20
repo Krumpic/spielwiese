@@ -28,7 +28,7 @@ function TabButton({
     <button
       type="button"
       className={`flex flex-1 flex-col items-center gap-0.5 py-2 text-xs font-medium ${
-        active === tab ? "text-emerald-800" : "text-stone-500"
+        active === tab ? "text-brand-800" : "text-stone-500"
       }`}
       aria-current={active === tab ? "page" : undefined}
       onClick={() => {
@@ -43,7 +43,7 @@ function TabButton({
 
 export function TabBar({ active, shoppingCount, settingsAlert, onChange }: TabBarProps) {
   return (
-    <nav className="fixed inset-x-0 bottom-0 z-30 flex border-t border-stone-200 bg-white/95 pb-[env(safe-area-inset-bottom)] backdrop-blur">
+    <nav className="fixed inset-x-0 bottom-0 z-30 flex border-t border-stone-200 bg-surface/95 pb-[env(safe-area-inset-bottom)] backdrop-blur">
       <TabButton
         tab="pantry"
         active={active}

@@ -18,7 +18,7 @@ import { runSafely } from "./runSafely.ts";
 type Filter = "all" | LocationId;
 
 const LEVEL_STYLE: ReadonlyMap<Item["level"], string> = new Map([
-  ["full", "bg-emerald-100 text-emerald-900"],
+  ["full", "bg-green-100 text-green-900"],
   ["half", "bg-lime-100 text-lime-900"],
   ["low", "bg-amber-100 text-amber-900"],
   ["empty", "bg-red-100 text-red-800"],
@@ -113,7 +113,7 @@ export function PantryView({ backupOverdue, onOpenSettings }: PantryViewProps) {
   return (
     <>
       <Header title="Kornspeicher">
-        <div className="mt-3 flex items-center gap-2 rounded-xl bg-white px-3 shadow-sm">
+        <div className="mt-3 flex items-center gap-2 rounded-xl bg-surface px-3 shadow-sm">
           <SearchIcon className="h-5 w-5 text-stone-400" />
           <input
             type="search"
@@ -136,8 +136,8 @@ export function PantryView({ backupOverdue, onOpenSettings }: PantryViewProps) {
               }}
               className={`min-h-9 shrink-0 rounded-full px-4 text-sm font-medium ${
                 filter === f.value
-                  ? "bg-emerald-800 text-white"
-                  : "bg-white text-stone-700 shadow-sm"
+                  ? "bg-brand-800 text-white"
+                  : "bg-surface text-stone-700 shadow-sm"
               }`}
             >
               {f.label}
@@ -168,7 +168,7 @@ export function PantryView({ backupOverdue, onOpenSettings }: PantryViewProps) {
             <p className="mt-1 text-stone-600">Leg deine ersten Lebensmittel an.</p>
             <button
               type="button"
-              className="mt-6 min-h-12 rounded-xl bg-emerald-800 px-6 font-semibold text-white"
+              className="mt-6 min-h-12 rounded-xl bg-brand-800 px-6 font-semibold text-white"
               onClick={() => {
                 setEditing("new");
               }}
@@ -184,7 +184,7 @@ export function PantryView({ backupOverdue, onOpenSettings }: PantryViewProps) {
               <h2 className="mb-2 px-1 text-xs font-bold tracking-wider text-stone-500 uppercase">
                 {locationLabel(group.location)}
               </h2>
-              <ul className="divide-y divide-stone-100 overflow-hidden rounded-2xl bg-white shadow-sm">
+              <ul className="divide-y divide-stone-100 overflow-hidden rounded-2xl bg-surface shadow-sm">
                 {group.items.map((item) => (
                   <ItemRow
                     key={item.id}
@@ -203,7 +203,7 @@ export function PantryView({ backupOverdue, onOpenSettings }: PantryViewProps) {
       <button
         type="button"
         aria-label="Neuen Artikel anlegen"
-        className="fixed right-5 bottom-[calc(5.5rem+env(safe-area-inset-bottom))] z-30 flex h-14 w-14 items-center justify-center rounded-full bg-emerald-800 text-white shadow-lg active:bg-emerald-900"
+        className="fixed right-5 bottom-[calc(5.5rem+env(safe-area-inset-bottom))] z-30 flex h-14 w-14 items-center justify-center rounded-full bg-brand-800 text-white shadow-lg active:bg-brand-900"
         onClick={() => {
           setEditing("new");
         }}

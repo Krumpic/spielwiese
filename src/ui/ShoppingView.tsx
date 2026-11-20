@@ -28,7 +28,7 @@ function EntryRow({ entry }: { entry: ShoppingEntry }) {
       >
         <span
           className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-full border-2 ${
-            entry.checked ? "border-emerald-700 bg-emerald-700 text-white" : "border-stone-300"
+            entry.checked ? "border-brand-700 bg-brand-700 text-white" : "border-stone-300"
           }`}
         >
           {entry.checked && <CheckIcon className="h-4 w-4" />}
@@ -83,7 +83,7 @@ function AddEntryForm() {
     <form onSubmit={onSubmit} className="mt-3 space-y-2" noValidate>
       <div className="flex gap-2">
         <input
-          className="min-h-11 min-w-0 flex-1 rounded-xl bg-white px-3 text-base shadow-sm outline-none focus:ring-2 focus:ring-emerald-700/30"
+          className="min-h-11 min-w-0 flex-1 rounded-xl bg-surface px-3 text-base shadow-sm outline-none focus:ring-2 focus:ring-brand-700/30"
           placeholder="Was brauchst du noch?"
           aria-label="Artikel zur Einkaufsliste hinzufügen"
           maxLength={60}
@@ -95,13 +95,13 @@ function AddEntryForm() {
         />
         <button
           type="submit"
-          className="min-h-11 rounded-xl bg-emerald-800 px-4 font-semibold text-white"
+          className="min-h-11 rounded-xl bg-brand-800 px-4 font-semibold text-white"
         >
           Dazu
         </button>
       </div>
       <select
-        className="min-h-11 w-full rounded-xl bg-white px-3 text-sm text-stone-700 shadow-sm"
+        className="min-h-11 w-full rounded-xl bg-surface px-3 text-sm text-stone-700 shadow-sm"
         aria-label="Abteilung im Supermarkt"
         value={section}
         onChange={(e) => {
@@ -144,7 +144,7 @@ export function ShoppingView() {
               <h2 className="mb-2 px-1 text-xs font-bold tracking-wider text-stone-500 uppercase">
                 {group.label}
               </h2>
-              <ul className="divide-y divide-stone-100 overflow-hidden rounded-2xl bg-white shadow-sm">
+              <ul className="divide-y divide-stone-100 overflow-hidden rounded-2xl bg-surface shadow-sm">
                 {group.entries.map((entry) => (
                   <EntryRow key={entry.id} entry={entry} />
                 ))}
@@ -158,7 +158,7 @@ export function ShoppingView() {
         <div className="fixed inset-x-0 bottom-[calc(4.25rem+env(safe-area-inset-bottom))] z-30 px-4 pb-3">
           <button
             type="button"
-            className="min-h-13 w-full rounded-2xl bg-emerald-800 text-base font-semibold text-white shadow-lg active:bg-emerald-900"
+            className="min-h-13 w-full rounded-2xl bg-brand-800 text-base font-semibold text-white shadow-lg active:bg-brand-900"
             onClick={() => {
               runSafely(() => completePurchase());
             }}

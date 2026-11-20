@@ -12,7 +12,10 @@ import {
   createItem,
   createRecipe,
   deleteItem,
+  loadAppearance,
   putItemsOnShoppingList,
+  saveColorMode,
+  saveTheme,
   undoCooking,
   exportBackup,
   markBackupDone,
@@ -61,6 +64,19 @@ const addItem = async (data: Partial<ItemData>) => {
   if (!item) throw new Error("Artikel fehlt");
   return item;
 };
+
+describe("Design-Einstellungen", () => {
+  it("speichert Farbe und Modus", async () => {
+    await saveTheme("berry");
+    await saveColorMode("dark");
+    expect(await loadAppearance()).toEqual({ theme: "berry", colorMode: "dark" });
+  });
+
+  it("lehnt unbekannte Werte ab", async () => {
+    await expect(saveTheme("neon")).rejects.toThrow();
+    await expect(saveColorMode("bunt")).rejects.toThrow();
+  });
+});
 
 describe("Rezepte", () => {
   it("Zutaten müssen im Vorrat existieren", async () => {

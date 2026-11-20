@@ -276,7 +276,7 @@ export function ItemForm({ item, defaultLocation, onDone }: ItemFormProps) {
 
       <button
         type="submit"
-        className="min-h-12 w-full rounded-xl bg-emerald-800 text-base font-semibold text-white active:bg-emerald-900"
+        className="min-h-12 w-full rounded-xl bg-brand-800 text-base font-semibold text-white active:bg-brand-900"
       >
         Speichern
       </button>

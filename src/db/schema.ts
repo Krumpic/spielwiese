@@ -1,4 +1,5 @@
 import Dexie, { type EntityTable } from "dexie";
+import type { ColorMode, ThemeId } from "../domain/appearance.ts";
 import type { Item } from "../domain/item.ts";
 import type { Recipe } from "../domain/recipe.ts";
 import type { ShoppingEntry } from "../domain/shopping.ts";
@@ -18,12 +19,15 @@ export const DB_NAME = "kornspeicher-db";
 /** Aktuelle Schema-Version – bei jeder neuen Version hochzählen (Test prüft das). */
 export const SCHEMA_VERSION = 3;
 
-/** Einfache Einstellungen/Merkwerte, z. B. Zeitpunkt des letzten Backups */
-export interface MetaEntry {
-  key: MetaKey;
-  value: number;
-}
-export type MetaKey = "lastBackupAt";
+/**
+ * Einfache Einstellungen/Merkwerte (Tabelle `meta`, Schlüssel = key).
+ * Neue Schlüssel brauchen keine Migration – die Tabelle hat keinen weiteren Index.
+ */
+export type MetaEntry =
+  | { key: "lastBackupAt"; value: number }
+  | { key: "theme"; value: ThemeId }
+  | { key: "colorMode"; value: ColorMode };
+export type MetaKey = MetaEntry["key"];
 
 export class KornspeicherDB extends Dexie {
   // `declare` statt Feld-Initialisierung: sonst überschreibt die Klasse Dexies Tabellen

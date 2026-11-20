@@ -71,8 +71,8 @@ function NewItemInline({
   };
 
   return (
-    <div className="mt-2 space-y-2 rounded-xl bg-emerald-50 p-3">
-      <p className="text-sm font-semibold text-emerald-900">Neu im Vorrat anlegen</p>
+    <div className="mt-2 space-y-2 rounded-xl bg-brand-50 p-3">
+      <p className="text-sm font-semibold text-brand-900">Neu im Vorrat anlegen</p>
       <input
         className={inputClass}
         placeholder="Name, z. B. Faschiertes"
@@ -107,14 +107,14 @@ function NewItemInline({
       <div className="flex gap-2">
         <button
           type="button"
-          className="min-h-11 flex-1 rounded-xl bg-emerald-800 font-semibold text-white"
+          className="min-h-11 flex-1 rounded-xl bg-brand-800 font-semibold text-white"
           onClick={create}
         >
           Anlegen
         </button>
         <button
           type="button"
-          className="min-h-11 flex-1 rounded-xl bg-white font-semibold text-stone-700"
+          className="min-h-11 flex-1 rounded-xl bg-surface font-semibold text-stone-700"
           onClick={onCancel}
         >
           Abbrechen
@@ -238,7 +238,7 @@ function IngredientEditor({
       <label className="mt-2 flex min-h-11 items-center gap-3 text-sm text-stone-700">
         <input
           type="checkbox"
-          className="h-5 w-5 accent-emerald-700"
+          className="h-5 w-5 accent-brand-700"
           checked={row.basic}
           onChange={(e) => {
             onChange({ ...row, basic: e.target.checked });
@@ -388,7 +388,7 @@ export function RecipeForm({ recipe, items, onDone }: RecipeFormProps) {
         <ol className="space-y-3">
           {steps.map((step, index) => (
             <li key={step.key} className="flex items-start gap-2">
-              <span className="mt-3 w-6 shrink-0 text-right font-bold text-emerald-800">
+              <span className="mt-3 w-6 shrink-0 text-right font-bold text-brand-800">
                 {index + 1}.
               </span>
               <textarea
@@ -437,7 +437,7 @@ export function RecipeForm({ recipe, items, onDone }: RecipeFormProps) {
 
       <button
         type="submit"
-        className="min-h-12 w-full rounded-xl bg-emerald-800 text-base font-semibold text-white active:bg-emerald-900"
+        className="min-h-12 w-full rounded-xl bg-brand-800 text-base font-semibold text-white active:bg-brand-900"
       >
         Rezept speichern
       </button>
