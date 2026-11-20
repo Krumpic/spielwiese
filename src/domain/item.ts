@@ -12,6 +12,8 @@ import {
   type SectionId,
   type Unit,
 } from "./constants.ts";
+import { BarcodeSchema } from "./barcode.ts";
+import { ExpiryDateSchema } from "./expiry.ts";
 
 export type StockMode = "exact" | "level";
 
@@ -36,6 +38,10 @@ export interface Item {
   targetQuantity: number | null;
   /** Ab diesem Füllstand (inklusive) muss nachgekauft werden */
   minLevel: Level | null;
+  /** Nächstes Ablaufdatum "JJJJ-MM-TT" (seit Schema v4); null = keins */
+  expiresOn: string | null;
+  /** Barcode (EAN/UPC), um den Artikel beim Scannen wiederzufinden (seit Schema v5) */
+  barcode: string | null;
   createdAt: number;
   updatedAt: number;
 }
@@ -63,6 +69,8 @@ const itemDataShape = {
   minQuantity: amount.nullable(),
   targetQuantity: amount.nullable(),
   minLevel: z.enum(LEVEL_IDS).nullable(),
+  expiresOn: ExpiryDateSchema.nullable(),
+  barcode: BarcodeSchema.nullable(),
 };
 
 const targetNotBelowMin = (d: { minQuantity: number | null; targetQuantity: number | null }) =>
@@ -113,24 +121,39 @@ export function restockQuantity(item: Item): number {
   return missing > 0 ? missing : unitInfo(item.unit).step;
 }
 
-/** Vorrat nach dem Einkauf */
+/** Ist nichts mehr da? */
+export function isEmpty(item: Item): boolean {
+  return item.mode === "exact" ? item.quantity <= 0 : item.level === "empty";
+}
+
+/** Ist ein Artikel leer, gehört sein Ablaufdatum zur verbrauchten Packung → löschen */
+export function clearExpiryIfEmpty(item: Item): Item {
+  return isEmpty(item) && item.expiresOn !== null ? { ...item, expiresOn: null } : item;
+}
+
+/**
+ * Vorrat nach dem Einkauf.
+ * War der Artikel leer, gilt das alte Ablaufdatum nicht mehr (neue Packung);
+ * war noch etwas da, bleibt das frühere Datum der älteren Packung stehen.
+ */
 export function applyPurchase(item: Item, purchased: number | null, now: number): Item {
-  if (item.mode === "level") {
-    return { ...item, level: "full", updatedAt: now };
+  const fresh = clearExpiryIfEmpty(item);
+  if (fresh.mode === "level") {
+    return { ...fresh, level: "full", updatedAt: now };
   }
-  const added = purchased ?? restockQuantity(item);
-  return { ...item, quantity: roundAmount(item.quantity + added), updatedAt: now };
+  const added = purchased ?? restockQuantity(fresh);
+  return { ...fresh, quantity: roundAmount(fresh.quantity + added), updatedAt: now };
 }
 
 /** +/- Knopf: eine Schrittweite der Einheit, nie unter 0 */
 export function adjustQuantity(item: Item, direction: 1 | -1, now: number): Item {
   const changed = roundAmount(item.quantity + direction * unitInfo(item.unit).step);
-  return { ...item, quantity: Math.max(0, changed), updatedAt: now };
+  return clearExpiryIfEmpty({ ...item, quantity: Math.max(0, changed), updatedAt: now });
 }
 
 /** Füllstand antippen: voll → halb → wenig → leer → voll */
 export function cycleLevel(item: Item, now: number): Item {
-  return { ...item, level: nextLevel(item.level), updatedAt: now };
+  return clearExpiryIfEmpty({ ...item, level: nextLevel(item.level), updatedAt: now });
 }
 
 const numberFormat = new Intl.NumberFormat("de-AT", { maximumFractionDigits: 3 });

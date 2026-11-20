@@ -125,6 +125,8 @@ describe("ItemDataSchema", () => {
     minQuantity: 1,
     targetQuantity: 3,
     minLevel: null,
+    expiresOn: null,
+    barcode: null,
   };
 
   it("akzeptiert gültige Daten und entfernt Leerzeichen", () => {

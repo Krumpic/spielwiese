@@ -20,7 +20,7 @@ import { Segmented } from "./form.tsx";
 import { runSafely } from "./runSafely.ts";
 
 export const STATUS_STYLE: ReadonlyMap<RecipeStatus, { dot: string; text: string }> = new Map([
-  ["green", { dot: "bg-emerald-500", text: "text-emerald-800" }],
+  ["green", { dot: "bg-green-500", text: "text-green-800" }],
   ["yellow", { dot: "bg-amber-400", text: "text-amber-800" }],
   ["red", { dot: "bg-red-500", text: "text-red-700" }],
 ]);
@@ -37,7 +37,7 @@ function IngredientLine({ check }: { check: IngredientCheck }) {
     needed !== null && ingredient.unit !== null ? formatQuantity(needed, ingredient.unit) : "";
 
   let icon = "✓";
-  let iconClass = "bg-emerald-100 text-emerald-800";
+  let iconClass = "bg-green-100 text-green-800";
   let detail: string | null = null;
 
   if (state.kind === "partial" || state.kind === "missing") {
@@ -143,7 +143,7 @@ export function RecipeDetail({ recipe, itemsById, onEdit }: RecipeDetailProps) {
           type="button"
           aria-label="Weniger Portionen"
           disabled={servings <= 1}
-          className="flex h-11 w-11 items-center justify-center rounded-full bg-white text-xl shadow-sm disabled:opacity-40"
+          className="flex h-11 w-11 items-center justify-center rounded-full bg-surface text-xl shadow-sm disabled:opacity-40"
           onClick={() => {
             setServings((s) => Math.max(1, s - 1));
           }}
@@ -162,7 +162,7 @@ export function RecipeDetail({ recipe, itemsById, onEdit }: RecipeDetailProps) {
           type="button"
           aria-label="Mehr Portionen"
           disabled={servings >= MAX_SERVINGS}
-          className="flex h-11 w-11 items-center justify-center rounded-full bg-white text-xl shadow-sm disabled:opacity-40"
+          className="flex h-11 w-11 items-center justify-center rounded-full bg-surface text-xl shadow-sm disabled:opacity-40"
           onClick={() => {
             setServings((s) => Math.min(MAX_SERVINGS, s + 1));
           }}
@@ -189,7 +189,7 @@ export function RecipeDetail({ recipe, itemsById, onEdit }: RecipeDetailProps) {
         (status === "green" ? (
           <button
             type="button"
-            className="min-h-12 w-full rounded-xl bg-emerald-800 text-base font-semibold text-white active:bg-emerald-900"
+            className="min-h-12 w-full rounded-xl bg-brand-800 text-base font-semibold text-white active:bg-brand-900"
             onClick={startCooking}
           >
             Jetzt kochen
@@ -233,7 +233,7 @@ export function RecipeDetail({ recipe, itemsById, onEdit }: RecipeDetailProps) {
           ))}
           <button
             type="button"
-            className="min-h-12 w-full rounded-xl bg-emerald-800 font-semibold text-white"
+            className="min-h-12 w-full rounded-xl bg-brand-800 font-semibold text-white"
             onClick={() => {
               cook(phase.answers);
             }}
@@ -253,21 +253,21 @@ export function RecipeDetail({ recipe, itemsById, onEdit }: RecipeDetailProps) {
       )}
 
       {phase.type === "cooked" && (
-        <section className="space-y-3 rounded-2xl bg-emerald-50 p-4" role="status">
-          <p className="font-semibold text-emerald-900">
+        <section className="space-y-3 rounded-2xl bg-brand-50 p-4" role="status">
+          <p className="font-semibold text-brand-900">
             Guten Appetit! Die Zutaten wurden vom Vorrat abgezogen.
           </p>
           {phase.result.emptied.length > 0 &&
             (phase.listed ? (
-              <p className="text-sm text-emerald-900">✓ Steht jetzt auf der Einkaufsliste.</p>
+              <p className="text-sm text-brand-900">✓ Steht jetzt auf der Einkaufsliste.</p>
             ) : (
-              <div className="rounded-xl bg-white p-3">
+              <div className="rounded-xl bg-surface p-3">
                 <p className="mb-1 text-sm font-semibold">Jetzt leer – auf die Einkaufsliste?</p>
                 {phase.result.emptied.map(({ item, quantity }) => (
                   <label key={item.id} className="flex min-h-11 items-center gap-3 text-sm">
                     <input
                       type="checkbox"
-                      className="h-5 w-5 accent-emerald-700"
+                      className="h-5 w-5 accent-brand-700"
                       checked={phase.selected.has(item.id)}
                       onChange={(e) => {
                         const selected = new Set(phase.selected);
@@ -305,7 +305,7 @@ export function RecipeDetail({ recipe, itemsById, onEdit }: RecipeDetailProps) {
             ))}
           <button
             type="button"
-            className="min-h-11 w-full rounded-xl bg-white font-semibold text-stone-700 shadow-sm"
+            className="min-h-11 w-full rounded-xl bg-surface font-semibold text-stone-700 shadow-sm"
             onClick={() => {
               runSafely(async () => {
                 await undoCooking(phase.result.before);
@@ -335,7 +335,7 @@ export function RecipeDetail({ recipe, itemsById, onEdit }: RecipeDetailProps) {
           <ol className="space-y-3">
             {recipe.steps.map((step, index) => (
               <li key={`${String(index)}-${step.slice(0, 20)}`} className="flex gap-3">
-                <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-emerald-800 text-sm font-bold text-white">
+                <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-brand-800 text-sm font-bold text-white">
                   {index + 1}
                 </span>
                 <p className="pt-0.5 whitespace-pre-line text-stone-800">{step}</p>

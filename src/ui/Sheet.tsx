@@ -19,7 +19,7 @@ export function Sheet({ title, onClose, children }: SheetProps) {
         role="dialog"
         aria-modal="true"
         aria-label={title}
-        className="max-h-[92dvh] w-full overflow-y-auto rounded-t-3xl bg-white px-5 pt-4 pb-[calc(1.5rem+env(safe-area-inset-bottom))] shadow-xl"
+        className="max-h-[92dvh] w-full overflow-y-auto rounded-t-3xl bg-surface px-5 pt-4 pb-[calc(1.5rem+env(safe-area-inset-bottom))] shadow-xl"
         onClick={(event) => {
           event.stopPropagation();
         }}

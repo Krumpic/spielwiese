@@ -1,4 +1,5 @@
 import Dexie, { type EntityTable } from "dexie";
+import type { ColorMode, ThemeId } from "../domain/appearance.ts";
 import type { Item } from "../domain/item.ts";
 import type { Recipe } from "../domain/recipe.ts";
 import type { ShoppingEntry } from "../domain/shopping.ts";
@@ -16,14 +17,19 @@ import type { ShoppingEntry } from "../domain/shopping.ts";
 export const DB_NAME = "kornspeicher-db";
 
 /** Aktuelle Schema-Version – bei jeder neuen Version hochzählen (Test prüft das). */
-export const SCHEMA_VERSION = 3;
+export const SCHEMA_VERSION = 5;
 
-/** Einfache Einstellungen/Merkwerte, z. B. Zeitpunkt des letzten Backups */
-export interface MetaEntry {
-  key: MetaKey;
-  value: number;
-}
-export type MetaKey = "lastBackupAt";
+/**
+ * Einfache Einstellungen/Merkwerte (Tabelle `meta`, Schlüssel = key).
+ * Neue Schlüssel brauchen keine Migration – die Tabelle hat keinen weiteren Index.
+ */
+export type MetaEntry =
+  | { key: "lastBackupAt"; value: number }
+  | { key: "theme"; value: ThemeId }
+  | { key: "colorMode"; value: ColorMode }
+  /** Produktnamen per Barcode bei Open Food Facts nachschlagen (Standard: ja) */
+  | { key: "productLookup"; value: boolean };
+export type MetaKey = MetaEntry["key"];
 
 export class KornspeicherDB extends Dexie {
   // `declare` statt Feld-Initialisierung: sonst überschreibt die Klasse Dexies Tabellen
@@ -54,6 +60,37 @@ export class KornspeicherDB extends Dexie {
     this.version(3).stores({
       recipes: "++id, name",
     });
+
+    // ---------- Version 4 (Phase 4): Ablaufdatum ----------
+    // Neues Feld `expiresOn` + Index (für „läuft bald ab"). Bestehende Artikel bekommen
+    // ausdrücklich `null` (= kein Datum), damit jeder Artikel dem aktuellen Format entspricht.
+    this.version(4)
+      .stores({
+        items: "++id, name, location, section, expiresOn",
+      })
+      .upgrade(async (tx) => {
+        await tx
+          .table("items")
+          .toCollection()
+          .modify((item: Record<string, unknown>) => {
+            if (!("expiresOn" in item)) item["expiresOn"] = null;
+          });
+      });
+
+    // ---------- Version 5 (Phase 4): Barcode ----------
+    // Neues Feld `barcode` + Index (Artikel beim Scannen wiederfinden). Bestehende → null.
+    this.version(5)
+      .stores({
+        items: "++id, name, location, section, expiresOn, barcode",
+      })
+      .upgrade(async (tx) => {
+        await tx
+          .table("items")
+          .toCollection()
+          .modify((item: Record<string, unknown>) => {
+            if (!("barcode" in item)) item["barcode"] = null;
+          });
+      });
   }
 }
 

@@ -1,6 +1,13 @@
 import { z } from "zod";
 import { UNIT_IDS, convertUnit, unitInfo, type Level, type Unit } from "./constants.ts";
-import { recordId, roundAmount, timestamp, type Item } from "./item.ts";
+import {
+  clearExpiryIfEmpty,
+  isEmpty,
+  recordId,
+  roundAmount,
+  timestamp,
+  type Item,
+} from "./item.ts";
 
 /**
  * Rezepte.
@@ -206,22 +213,21 @@ export function planCooking(
     if (item.mode === "level") {
       const level = levelAnswers.get(item.id);
       if (level !== undefined && level !== item.level)
-        updated.push({ ...item, level, updatedAt: now });
+        updated.push(clearExpiryIfEmpty({ ...item, level, updatedAt: now }));
       continue;
     }
     if (needed === null || ingredient.unit === null) continue;
     const used = convertUnit(needed, ingredient.unit, item.unit);
     if (used === null) continue;
-    updated.push({
-      ...item,
-      quantity: Math.max(0, roundAmount(item.quantity - used)),
-      updatedAt: now,
-    });
+    updated.push(
+      clearExpiryIfEmpty({
+        ...item,
+        quantity: Math.max(0, roundAmount(item.quantity - used)),
+        updatedAt: now,
+      }),
+    );
   }
   return updated;
 }
 
-/** Ist der Artikel nach dem Kochen leer? */
-export function isEmpty(item: Item): boolean {
-  return item.mode === "exact" ? item.quantity <= 0 : item.level === "empty";
-}
+export { isEmpty };

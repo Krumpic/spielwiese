@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { isBackupOverdue } from "./domain/backup.ts";
-import { useItems, useLastBackupAt, useShoppingEntries } from "./db/live.ts";
+import { useAppearance, useItems, useLastBackupAt, useShoppingEntries } from "./db/live.ts";
+import { useApplyAppearance } from "./ui/appearance.ts";
 import { PantryView } from "./ui/PantryView.tsx";
 import { RecipesView } from "./ui/RecipesView.tsx";
 import { SettingsView } from "./ui/SettingsView.tsx";
@@ -13,6 +14,7 @@ export function App() {
   const items = useItems();
   const entries = useShoppingEntries();
   const lastBackupAt = useLastBackupAt();
+  useApplyAppearance(useAppearance());
 
   const openCount = entries?.filter((e) => !e.checked).length ?? 0;
   const backupOverdue =

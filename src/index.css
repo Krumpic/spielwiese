@@ -1,6 +1,9 @@
 @import "tailwindcss";
+@import "./theme.css";
 
 html {
+  /* Hintergrund auch beim Über-Scrollen passend (hell/dunkel) */
+  background-color: var(--color-stone-100);
   -webkit-text-size-adjust: 100%;
   -webkit-tap-highlight-color: transparent;
 }

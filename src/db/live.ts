@@ -1,5 +1,6 @@
 import { liveQuery, type Subscription } from "dexie";
 import { useSyncExternalStore } from "react";
+import { parseAppearance, type Appearance } from "../domain/appearance.ts";
 import type { Item } from "../domain/item.ts";
 import type { Recipe } from "../domain/recipe.ts";
 import type { ShoppingEntry } from "../domain/shopping.ts";
@@ -61,9 +62,30 @@ export function useRecipes(): Recipe[] | undefined {
 }
 
 /** Zeitpunkt des letzten Backups: undefined = lädt noch, null = noch nie */
-const lastBackupStore = createLiveStore<number | null>(
-  async () => (await db.meta.get("lastBackupAt"))?.value ?? null,
-);
+const lastBackupStore = createLiveStore<number | null>(async () => {
+  const value = (await db.meta.get("lastBackupAt"))?.value;
+  return typeof value === "number" ? value : null;
+});
+
+/** Gewähltes Design – gespeicherte Werte werden geprüft, Unbekanntes → Standard */
+const appearanceStore = createLiveStore<Appearance>(async () => {
+  const [theme, colorMode] = await db.meta.bulkGet(["theme", "colorMode"]);
+  return parseAppearance(theme?.value, colorMode?.value);
+});
+
+const productLookupStore = createLiveStore<boolean>(async () => {
+  const entry = await db.meta.get("productLookup");
+  return entry?.key === "productLookup" ? entry.value : true;
+});
+
+/** Darf online nachgeschlagen werden? (Standard: ja) */
+export function useProductLookup(): boolean | undefined {
+  return useSyncExternalStore(productLookupStore.subscribe, productLookupStore.getSnapshot);
+}
+
+export function useAppearance(): Appearance | undefined {
+  return useSyncExternalStore(appearanceStore.subscribe, appearanceStore.getSnapshot);
+}
 
 export function useLastBackupAt(): number | null | undefined {
   return useSyncExternalStore(lastBackupStore.subscribe, lastBackupStore.getSnapshot);

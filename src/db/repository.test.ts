@@ -12,7 +12,13 @@ import {
   createItem,
   createRecipe,
   deleteItem,
+  findItemByBarcode,
+  loadAppearance,
+  loadProductLookup,
+  saveProductLookup,
   putItemsOnShoppingList,
+  saveColorMode,
+  saveTheme,
   undoCooking,
   exportBackup,
   markBackupDone,
@@ -34,6 +40,8 @@ const milk: ItemData = {
   minQuantity: 2,
   targetQuantity: 3,
   minLevel: null,
+  expiresOn: null,
+  barcode: null,
 };
 
 const onlyItem = async () => {
@@ -61,6 +69,40 @@ const addItem = async (data: Partial<ItemData>) => {
   if (!item) throw new Error("Artikel fehlt");
   return item;
 };
+
+describe("Barcode", () => {
+  it("findet einen Artikel über seinen Barcode", async () => {
+    await createItem({ ...milk, barcode: "3017620422003" });
+    expect((await findItemByBarcode("3017620422003"))?.name).toBe("Milch");
+    expect(await findItemByBarcode("4006381333931")).toBeUndefined();
+  });
+
+  it("lehnt ungültige Barcodes ab – beim Suchen und beim Speichern", async () => {
+    await expect(findItemByBarcode("123")).rejects.toThrow();
+    await expect(createItem({ ...milk, barcode: "3017620422004" })).rejects.toThrow();
+    expect(await db.items.count()).toBe(0);
+  });
+
+  it("Online-Produktsuche ist standardmäßig an und lässt sich abschalten", async () => {
+    expect(await loadProductLookup()).toBe(true);
+    await saveProductLookup(false);
+    expect(await loadProductLookup()).toBe(false);
+    await expect(saveProductLookup("ja")).rejects.toThrow();
+  });
+});
+
+describe("Design-Einstellungen", () => {
+  it("speichert Farbe und Modus", async () => {
+    await saveTheme("berry");
+    await saveColorMode("dark");
+    expect(await loadAppearance()).toEqual({ theme: "berry", colorMode: "dark" });
+  });
+
+  it("lehnt unbekannte Werte ab", async () => {
+    await expect(saveTheme("neon")).rejects.toThrow();
+    await expect(saveColorMode("bunt")).rejects.toThrow();
+  });
+});
 
 describe("Rezepte", () => {
   it("Zutaten müssen im Vorrat existieren", async () => {

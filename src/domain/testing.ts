@@ -15,6 +15,8 @@ export function makeItem(overrides: Partial<Item> = {}): Item {
     minQuantity: null,
     targetQuantity: null,
     minLevel: null,
+    expiresOn: null,
+    barcode: null,
     createdAt: 0,
     updatedAt: 0,
     ...overrides,

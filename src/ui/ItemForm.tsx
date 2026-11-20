@@ -16,7 +16,13 @@ import {
   type SectionId,
   type Unit,
 } from "../domain/constants.ts";
-import { ItemDataSchema, parseDecimal, type Item, type StockMode } from "../domain/item.ts";
+import {
+  ItemDataSchema,
+  parseDecimal,
+  type Item,
+  type ItemData,
+  type StockMode,
+} from "../domain/item.ts";
 import {
   countRecipesUsingItem,
   createItem,
@@ -25,6 +31,9 @@ import {
   updateItem,
 } from "../db/repository.ts";
 import { DEFAULT_SECTION, Field, Segmented, inputClass, numberText } from "./form.tsx";
+import { EXPIRY_WARNING_DAYS } from "../domain/expiry.ts";
+import { BarcodeScanner } from "./BarcodeScanner.tsx";
+import { BarcodeIcon } from "./icons.tsx";
 import { runSafely } from "./runSafely.ts";
 
 interface FormState {
@@ -38,12 +47,24 @@ interface FormState {
   minQuantity: string;
   targetQuantity: string;
   minLevel: Level | "never";
+  /** "" = kein Datum, sonst "JJJJ-MM-TT" (Format des Datumsfelds) */
+  expiresOn: string;
+  barcode: string | null;
 }
 
-function toFormState(item: Item | null, location: LocationId): FormState {
+/** Vorbelegung für neue Artikel, z. B. nach einem Scan */
+export interface ItemPrefill {
+  name?: string;
+  barcode?: string;
+  /** Hinweis über dem Formular, z. B. „Name von Open Food Facts – bitte prüfen" */
+  note?: string;
+}
+
+function toFormState(item: Item | null, location: LocationId, prefill?: ItemPrefill): FormState {
   if (!item) {
     return {
-      name: "",
+      name: prefill?.name ?? "",
+      barcode: prefill?.barcode ?? null,
       location,
       section: DEFAULT_SECTION.get(location) ?? "other",
       mode: "exact",
@@ -53,6 +74,7 @@ function toFormState(item: Item | null, location: LocationId): FormState {
       minQuantity: "",
       targetQuantity: "",
       minLevel: "low",
+      expiresOn: "",
     };
   }
   return {
@@ -66,11 +88,15 @@ function toFormState(item: Item | null, location: LocationId): FormState {
     minQuantity: numberText(item.minQuantity),
     targetQuantity: numberText(item.targetQuantity),
     minLevel: item.minLevel ?? "never",
+    expiresOn: item.expiresOn ?? "",
+    barcode: item.barcode,
   };
 }
 
-function toItemData(form: FormState) {
+/** Typ erzwingt, dass ALLE Artikel-Felder geliefert werden (sonst Compilerfehler) */
+function toItemData(form: FormState): Record<keyof ItemData, unknown> {
   return {
+    barcode: form.barcode,
     name: form.name,
     location: form.location,
     section: form.section,
@@ -81,17 +107,20 @@ function toItemData(form: FormState) {
     minQuantity: parseDecimal(form.minQuantity),
     targetQuantity: parseDecimal(form.targetQuantity),
     minLevel: form.minLevel === "never" ? null : form.minLevel,
+    expiresOn: form.expiresOn === "" ? null : form.expiresOn,
   };
 }
 
 interface ItemFormProps {
   item: Item | null;
   defaultLocation: LocationId;
+  prefill?: ItemPrefill;
   onDone: () => void;
 }
 
-export function ItemForm({ item, defaultLocation, onDone }: ItemFormProps) {
-  const [form, setForm] = useState<FormState>(() => toFormState(item, defaultLocation));
+export function ItemForm({ item, defaultLocation, prefill, onDone }: ItemFormProps) {
+  const [form, setForm] = useState<FormState>(() => toFormState(item, defaultLocation, prefill));
+  const [scanning, setScanning] = useState(false);
   const [errors, setErrors] = useState<Map<string, string>>(new Map());
   // Bei neuen Artikeln folgt die Abteilung dem Lagerort, bis sie von Hand gewählt wurde
   const [sectionChosen, setSectionChosen] = useState(item !== null);
@@ -123,6 +152,11 @@ export function ItemForm({ item, defaultLocation, onDone }: ItemFormProps) {
 
   return (
     <form onSubmit={onSubmit} className="space-y-5" noValidate>
+      {prefill?.note && (
+        <p className="rounded-xl bg-brand-50 p-3 text-sm text-brand-900" role="status">
+          {prefill.note}
+        </p>
+      )}
       <Field label="Name" error={errors.get("name")}>
         <input
           className={inputClass}
@@ -274,9 +308,85 @@ export function ItemForm({ item, defaultLocation, onDone }: ItemFormProps) {
         </>
       )}
 
+      <div>
+        <Field
+          label="Ablaufdatum (optional)"
+          hint={`Das nächste Ablaufdatum – die App warnt ${String(EXPIRY_WARNING_DAYS)} Tage vorher.`}
+          error={errors.get("expiresOn")}
+        >
+          <input
+            type="date"
+            className={inputClass}
+            value={form.expiresOn}
+            min="2000-01-01"
+            max="2200-12-31"
+            onChange={(e) => {
+              set("expiresOn", e.target.value);
+            }}
+          />
+        </Field>
+        {form.expiresOn !== "" && (
+          <button
+            type="button"
+            className="mt-1 min-h-11 text-sm font-semibold text-brand-800"
+            onClick={() => {
+              set("expiresOn", "");
+            }}
+          >
+            Datum entfernen
+          </button>
+        )}
+      </div>
+
+      <div>
+        <span className="mb-1 block text-sm font-semibold text-stone-700">Barcode (optional)</span>
+        {form.barcode !== null ? (
+          <div className="flex items-center justify-between gap-2 rounded-xl bg-stone-100 px-3 py-2">
+            <span className="font-mono text-sm tabular-nums">{form.barcode}</span>
+            <button
+              type="button"
+              className="min-h-11 text-sm font-semibold text-brand-800"
+              onClick={() => {
+                set("barcode", null);
+              }}
+            >
+              Entfernen
+            </button>
+          </div>
+        ) : (
+          <button
+            type="button"
+            className="flex min-h-11 w-full items-center justify-center gap-2 rounded-xl bg-stone-100 font-semibold text-stone-800 active:bg-stone-200"
+            onClick={() => {
+              setScanning(true);
+            }}
+          >
+            <BarcodeIcon className="h-5 w-5" /> Barcode scannen
+          </button>
+        )}
+        <span className="mt-1 block text-xs text-stone-500">
+          Damit findest du den Artikel später per Scan sofort wieder.
+        </span>
+        {errors.get("barcode") && (
+          <span className="mt-1 block text-sm text-red-700">{errors.get("barcode")}</span>
+        )}
+      </div>
+
+      {scanning && (
+        <BarcodeScanner
+          onClose={() => {
+            setScanning(false);
+          }}
+          onResult={(barcode) => {
+            setScanning(false);
+            set("barcode", barcode);
+          }}
+        />
+      )}
+
       <button
         type="submit"
-        className="min-h-12 w-full rounded-xl bg-emerald-800 text-base font-semibold text-white active:bg-emerald-900"
+        className="min-h-12 w-full rounded-xl bg-brand-800 text-base font-semibold text-white active:bg-brand-900"
       >
         Speichern
       </button>

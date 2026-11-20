@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
-import { CONTENT_SECURITY_POLICY, CSP_DIRECTIVES } from "./csp.ts";
+import { OFF_ORIGIN } from "../domain/openFoodFacts.ts";
+import { CONTENT_SECURITY_POLICY, CSP_DIRECTIVES, OPEN_FOOD_FACTS } from "./csp.ts";
 
 describe("Content Security Policy", () => {
   it("erlaubt standardmäßig nur die eigene Herkunft", () => {
@@ -20,6 +21,16 @@ describe("Content Security Policy", () => {
     for (const source of CSP_DIRECTIVES["connect-src"] ?? []) {
       expect(source === "'self'" || source.startsWith("https://")).toBe(true);
     }
+  });
+
+  it("erlaubt nach außen ausschließlich die freigegebene Adresse (Open Food Facts)", () => {
+    expect(CSP_DIRECTIVES["connect-src"]).toEqual(["'self'", "https://world.openfoodfacts.org"]);
+    expect(OPEN_FOOD_FACTS).toBe(OFF_ORIGIN);
+    // Skripte, Styles, Bilder dürfen weiterhin NUR von der eigenen Herkunft kommen
+    expect(CSP_DIRECTIVES["script-src"]).toEqual(["'self'"]);
+    expect(CSP_DIRECTIVES["style-src"]).toEqual(["'self'"]);
+    expect(CSP_DIRECTIVES["font-src"]).toEqual(["'self'"]);
+    expect(CSP_DIRECTIVES["default-src"]).toEqual(["'self'"]);
   });
 
   it("enthält keine Wildcards", () => {

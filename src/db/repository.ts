@@ -11,7 +11,14 @@ import {
   planShoppingSync,
   type NewShoppingEntry,
 } from "../domain/shopping.ts";
+import {
+  ColorModeSchema,
+  ThemeIdSchema,
+  parseAppearance,
+  type Appearance,
+} from "../domain/appearance.ts";
 import { createBackup, type Backup } from "../domain/backup.ts";
+import { BarcodeSchema } from "../domain/barcode.ts";
 import type { Level } from "../domain/constants.ts";
 import {
   MAX_SERVINGS,
@@ -179,6 +186,39 @@ export async function exportBackup(): Promise<Backup> {
 
 export async function markBackupDone(): Promise<void> {
   await db.meta.put({ key: "lastBackupAt", value: Date.now() });
+}
+
+// ---------- Barcode ----------
+
+/** Findet einen Vorrats-Artikel anhand seines Barcodes (nur gültige Barcodes) */
+export async function findItemByBarcode(input: unknown): Promise<Item | undefined> {
+  const barcode = BarcodeSchema.parse(input);
+  return db.items.where("barcode").equals(barcode).first();
+}
+
+/** Darf der Produktname bei Open Food Facts nachgeschlagen werden? (Standard: ja) */
+export async function loadProductLookup(): Promise<boolean> {
+  const entry = await db.meta.get("productLookup");
+  return entry?.key === "productLookup" ? entry.value : true;
+}
+
+export async function saveProductLookup(input: unknown): Promise<void> {
+  await db.meta.put({ key: "productLookup", value: z.boolean().parse(input) });
+}
+
+// ---------- Erscheinungsbild ----------
+
+export async function loadAppearance(): Promise<Appearance> {
+  const [theme, colorMode] = await db.meta.bulkGet(["theme", "colorMode"]);
+  return parseAppearance(theme?.value, colorMode?.value);
+}
+
+export async function saveTheme(input: unknown): Promise<void> {
+  await db.meta.put({ key: "theme", value: ThemeIdSchema.parse(input) });
+}
+
+export async function saveColorMode(input: unknown): Promise<void> {
+  await db.meta.put({ key: "colorMode", value: ColorModeSchema.parse(input) });
 }
 
 /**

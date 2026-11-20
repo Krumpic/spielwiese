@@ -47,7 +47,7 @@ export function RecipesView() {
   return (
     <>
       <Header title="Rezepte">
-        <div className="mt-3 flex items-center gap-2 rounded-xl bg-white px-3 shadow-sm">
+        <div className="mt-3 flex items-center gap-2 rounded-xl bg-surface px-3 shadow-sm">
           <SearchIcon className="h-5 w-5 text-stone-400" />
           <input
             type="search"
@@ -74,7 +74,7 @@ export function RecipesView() {
                 setFilter(value);
               }}
               className={`min-h-9 rounded-full px-4 text-sm font-medium ${
-                filter === value ? "bg-emerald-800 text-white" : "bg-white text-stone-700 shadow-sm"
+                filter === value ? "bg-brand-800 text-white" : "bg-surface text-stone-700 shadow-sm"
               }`}
             >
               {label}
@@ -94,7 +94,7 @@ export function RecipesView() {
             </p>
             <button
               type="button"
-              className="mt-6 min-h-12 rounded-xl bg-emerald-800 px-6 font-semibold text-white"
+              className="mt-6 min-h-12 rounded-xl bg-brand-800 px-6 font-semibold text-white"
               onClick={() => {
                 setOpen({ type: "form", id: null });
               }}
@@ -109,7 +109,7 @@ export function RecipesView() {
               : "Nichts gefunden."}
           </p>
         ) : (
-          <ul className="mt-4 divide-y divide-stone-100 overflow-hidden rounded-2xl bg-white shadow-sm">
+          <ul className="mt-4 divide-y divide-stone-100 overflow-hidden rounded-2xl bg-surface shadow-sm">
             {rows.map(({ recipe, status, missingCount, total }) => {
               const style = STATUS_STYLE.get(status);
               return (
@@ -143,7 +143,7 @@ export function RecipesView() {
       <button
         type="button"
         aria-label="Neues Rezept anlegen"
-        className="fixed right-5 bottom-[calc(5.5rem+env(safe-area-inset-bottom))] z-30 flex h-14 w-14 items-center justify-center rounded-full bg-emerald-800 text-white shadow-lg active:bg-emerald-900"
+        className="fixed right-5 bottom-[calc(5.5rem+env(safe-area-inset-bottom))] z-30 flex h-14 w-14 items-center justify-center rounded-full bg-brand-800 text-white shadow-lg active:bg-brand-900"
         onClick={() => {
           setOpen({ type: "form", id: null });
         }}

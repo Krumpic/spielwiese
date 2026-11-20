@@ -1,7 +1,15 @@
 import { useEffect, useRef, useState, type ChangeEvent, type ReactNode } from "react";
 import { daysSince } from "../domain/backup.ts";
-import { restoreBackup } from "../db/repository.ts";
-import { useItems, useLastBackupAt, useRecipes, useShoppingEntries } from "../db/live.ts";
+import { restoreBackup, saveProductLookup } from "../db/repository.ts";
+import {
+  useAppearance,
+  useItems,
+  useLastBackupAt,
+  useRecipes,
+  useProductLookup,
+  useShoppingEntries,
+} from "../db/live.ts";
+import { AppearanceCard } from "./AppearanceCard.tsx";
 import { Header } from "./Header.tsx";
 import { readBackupFile, requestPersistentStorage, saveBackupFile } from "./backupFile.ts";
 import { runSafely } from "./runSafely.ts";
@@ -10,7 +18,7 @@ const dateFormat = new Intl.DateTimeFormat("de-AT", { dateStyle: "long", timeSty
 
 function Card({ title, children }: { title: string; children: ReactNode }) {
   return (
-    <section className="mt-4 rounded-2xl bg-white p-4 shadow-sm">
+    <section className="mt-4 rounded-2xl bg-surface p-4 shadow-sm">
       <h2 className="mb-2 text-lg font-bold">{title}</h2>
       {children}
     </section>
@@ -21,6 +29,8 @@ export function SettingsView() {
   const items = useItems();
   const entries = useShoppingEntries();
   const recipes = useRecipes();
+  const appearance = useAppearance();
+  const productLookup = useProductLookup();
   const lastBackupAt = useLastBackupAt();
   const fileInput = useRef<HTMLInputElement>(null);
   const [persistent, setPersistent] = useState<boolean | null>(null);
@@ -78,7 +88,7 @@ export function SettingsView() {
           </p>
           <button
             type="button"
-            className="mt-4 min-h-12 w-full rounded-xl bg-emerald-800 font-semibold text-white active:bg-emerald-900"
+            className="mt-4 min-h-12 w-full rounded-xl bg-brand-800 font-semibold text-white active:bg-brand-900"
             disabled={items === undefined || entries === undefined || recipes === undefined}
             onClick={() => {
               if (items === undefined || entries === undefined || recipes === undefined) return;
@@ -107,6 +117,30 @@ export function SettingsView() {
             tabIndex={-1}
             onChange={onFileChosen}
           />
+        </Card>
+
+        {appearance && <AppearanceCard appearance={appearance} />}
+
+        <Card title="Barcode-Scanner">
+          <label className="flex min-h-11 items-center gap-3">
+            <input
+              type="checkbox"
+              className="h-6 w-6 shrink-0 accent-brand-700"
+              checked={productLookup ?? true}
+              disabled={productLookup === undefined}
+              onChange={(e) => {
+                const enabled = e.target.checked;
+                runSafely(() => saveProductLookup(enabled));
+              }}
+            />
+            <span className="font-semibold">Produktnamen online nachschlagen</span>
+          </label>
+          <p className="mt-2 text-sm text-stone-600">
+            Bei einem unbekannten Barcode wird <strong>nur die Barcode-Nummer</strong> an Open Food
+            Facts (freie, gemeinnützige Lebensmittel-Datenbank) gesendet. Keine Vorratsdaten, kein
+            Name, keine Cookies. Ausgeschaltet bleibt der Scanner komplett offline – den Namen
+            tippst du dann beim ersten Scan selbst ein.
+          </p>
         </Card>
 
         <Card title="Speicher">
