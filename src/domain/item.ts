@@ -48,32 +48,46 @@ const amount = z
   .min(0, "Darf nicht negativ sein.")
   .max(MAX_AMOUNT, "Zahl ist zu groß.");
 
+const itemDataShape = {
+  name: z
+    .string()
+    .trim()
+    .min(1, "Bitte einen Namen eingeben.")
+    .max(60, "Name ist zu lang (max. 60 Zeichen)."),
+  location: z.enum(LOCATION_IDS),
+  section: z.enum(SECTION_IDS),
+  mode: z.enum(["exact", "level"]),
+  quantity: amount,
+  unit: z.enum(UNIT_IDS),
+  level: z.enum(LEVEL_IDS),
+  minQuantity: amount.nullable(),
+  targetQuantity: amount.nullable(),
+  minLevel: z.enum(LEVEL_IDS).nullable(),
+};
+
+const targetNotBelowMin = (d: { minQuantity: number | null; targetQuantity: number | null }) =>
+  d.minQuantity === null || d.targetQuantity === null || d.targetQuantity >= d.minQuantity;
+const targetNotBelowMinError = {
+  message: "Die Sollmenge muss mindestens so groß wie die Mindestmenge sein.",
+  path: ["targetQuantity"],
+};
+
 /** Prüft alle Daten, bevor sie gespeichert werden. */
 export const ItemDataSchema = z
-  .object({
-    name: z
-      .string()
-      .trim()
-      .min(1, "Bitte einen Namen eingeben.")
-      .max(60, "Name ist zu lang (max. 60 Zeichen)."),
-    location: z.enum(LOCATION_IDS),
-    section: z.enum(SECTION_IDS),
-    mode: z.enum(["exact", "level"]),
-    quantity: amount,
-    unit: z.enum(UNIT_IDS),
-    level: z.enum(LEVEL_IDS),
-    minQuantity: amount.nullable(),
-    targetQuantity: amount.nullable(),
-    minLevel: z.enum(LEVEL_IDS).nullable(),
-  })
+  .object(itemDataShape)
   .strict()
-  .refine(
-    (d) => d.minQuantity === null || d.targetQuantity === null || d.targetQuantity >= d.minQuantity,
-    {
-      message: "Die Sollmenge muss mindestens so groß wie die Mindestmenge sein.",
-      path: ["targetQuantity"],
-    },
-  );
+  .refine(targetNotBelowMin, targetNotBelowMinError);
+
+/** Zeitstempel in Millisekunden (zwischen 2000 und 2200) */
+export const timestamp = z.number().int().min(946_684_800_000).max(7_258_118_400_000);
+/** Datenbank-ID */
+export const recordId = z.number().int().positive().max(Number.MAX_SAFE_INTEGER);
+
+/** Prüft einen vollständigen, gespeicherten Artikel (z. B. aus einem Backup). */
+export const StoredItemSchema = z
+  .object({ ...itemDataShape, id: recordId, createdAt: timestamp, updatedAt: timestamp })
+  .strict()
+  .refine(targetNotBelowMin, targetNotBelowMinError);
 
 /** Rundet auf 3 Nachkommastellen (vermeidet 0.1 + 0.2 = 0.30000000000000004) */
 export function roundAmount(n: number): number {

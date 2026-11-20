@@ -14,10 +14,21 @@ import type { ShoppingEntry } from "../domain/shopping.ts";
  */
 export const DB_NAME = "kornspeicher-db";
 
+/** Aktuelle Schema-Version – bei jeder neuen Version hochzählen (Test prüft das). */
+export const SCHEMA_VERSION = 2;
+
+/** Einfache Einstellungen/Merkwerte, z. B. Zeitpunkt des letzten Backups */
+export interface MetaEntry {
+  key: MetaKey;
+  value: number;
+}
+export type MetaKey = "lastBackupAt";
+
 export class KornspeicherDB extends Dexie {
   // `declare` statt Feld-Initialisierung: sonst überschreibt die Klasse Dexies Tabellen
   declare items: EntityTable<Item, "id">;
   declare shopping: EntityTable<ShoppingEntry, "id">;
+  declare meta: EntityTable<MetaEntry, "key">;
 
   constructor(name: string = DB_NAME) {
     super(name);
@@ -28,6 +39,12 @@ export class KornspeicherDB extends Dexie {
     this.version(1).stores({
       items: "++id, name, location, section",
       shopping: "++id, itemId, section",
+    });
+
+    // ---------- Version 2 (Phase 2): Tabelle für Merkwerte (letztes Backup) ----------
+    // Nur eine neue Tabelle; bestehende Daten bleiben unverändert → kein upgrade() nötig.
+    this.version(2).stores({
+      meta: "key",
     });
   }
 }

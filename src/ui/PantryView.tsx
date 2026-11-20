@@ -79,7 +79,12 @@ function ItemRow({ item, onEdit }: { item: Item; onEdit: () => void }) {
   );
 }
 
-export function PantryView() {
+interface PantryViewProps {
+  backupOverdue: boolean;
+  onOpenSettings: () => void;
+}
+
+export function PantryView({ backupOverdue, onOpenSettings }: PantryViewProps) {
   const items = useItems();
   const [filter, setFilter] = useState<Filter>("all");
   const [search, setSearch] = useState("");
@@ -142,6 +147,19 @@ export function PantryView() {
       </Header>
 
       <main className="px-4 pb-28">
+        {backupOverdue && (
+          <button
+            type="button"
+            onClick={onOpenSettings}
+            className="mt-2 flex w-full items-center justify-between gap-3 rounded-2xl bg-amber-100 px-4 py-3 text-left text-sm text-amber-900"
+          >
+            <span>
+              <span className="block font-semibold">Zeit für ein Backup</span>
+              Deine Daten sind nur auf diesem iPhone gespeichert.
+            </span>
+            <span className="shrink-0 font-semibold">Sichern ›</span>
+          </button>
+        )}
         {items === undefined ? (
           <p className="py-10 text-center text-stone-500">Wird geladen …</p>
         ) : items.length === 0 ? (

@@ -52,3 +52,12 @@ export function useItems(): Item[] | undefined {
 export function useShoppingEntries(): ShoppingEntry[] | undefined {
   return useSyncExternalStore(shoppingStore.subscribe, shoppingStore.getSnapshot);
 }
+
+/** Zeitpunkt des letzten Backups: undefined = lädt noch, null = noch nie */
+const lastBackupStore = createLiveStore<number | null>(
+  async () => (await db.meta.get("lastBackupAt"))?.value ?? null,
+);
+
+export function useLastBackupAt(): number | null | undefined {
+  return useSyncExternalStore(lastBackupStore.subscribe, lastBackupStore.getSnapshot);
+}
