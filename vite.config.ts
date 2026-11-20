@@ -5,7 +5,7 @@ import tailwindcss from "@tailwindcss/vite";
 import { VitePWA } from "vite-plugin-pwa";
 import { CONTENT_SECURITY_POLICY } from "./src/security/csp.ts";
 
-const APP_NAME = "Vorrat";
+const APP_NAME = "Kornspeicher";
 const THEME_COLOR = "#2f6b4f";
 const BACKGROUND_COLOR = "#f6f4ee";
 

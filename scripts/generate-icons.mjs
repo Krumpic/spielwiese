@@ -3,30 +3,46 @@
 import { writeFileSync, mkdirSync } from "node:fs";
 import { deflateSync, crc32 } from "node:zlib";
 
+// Motiv: eine goldene Ähre auf grünem Grund (Kornspeicher)
 const BG = [47, 107, 79]; // Dunkelgrün
-const LID = [242, 193, 78]; // Deckel gelb
-const JAR = [255, 255, 255]; // Glas weiß
-const LABEL = [207, 232, 214]; // Etikett hellgrün
+const GRAIN = [236, 189, 82]; // Korn gold
+const STEM = [214, 160, 58]; // Halm dunkleres Gold
 
-// Form in Einheitskoordinaten (0..1); alles innerhalb der 80-%-Sicherheitszone für "maskable"
-const shapes = [
-  { x0: 0.36, y0: 0.2, x1: 0.64, y1: 0.29, r: 0.03, color: LID },
-  { x0: 0.28, y0: 0.31, x1: 0.72, y1: 0.8, r: 0.08, color: JAR },
-  { x0: 0.28, y0: 0.48, x1: 0.72, y1: 0.62, r: 0, color: LABEL },
-];
-
-function inRoundedRect(px, py, s) {
-  if (px < s.x0 || px > s.x1 || py < s.y0 || py > s.y1) return false;
-  const cx = Math.min(Math.max(px, s.x0 + s.r), s.x1 - s.r);
-  const cy = Math.min(Math.max(py, s.y0 + s.r), s.y1 - s.r);
-  return (px - cx) ** 2 + (py - cy) ** 2 <= s.r ** 2;
+function roundedRect(x0, y0, x1, y1, r) {
+  return (px, py) => {
+    if (px < x0 || px > x1 || py < y0 || py > y1) return false;
+    const cx = Math.min(Math.max(px, x0 + r), x1 - r);
+    const cy = Math.min(Math.max(py, y0 + r), y1 - r);
+    return (px - cx) ** 2 + (py - cy) ** 2 <= r ** 2;
+  };
 }
+
+/** Gedrehte Ellipse; angle in Grad, positiv = oberes Ende nach rechts geneigt */
+function ellipse(cx, cy, rx, ry, angle) {
+  const a = (angle * Math.PI) / 180;
+  const cos = Math.cos(a);
+  const sin = Math.sin(a);
+  return (px, py) => {
+    const dx = px - cx;
+    const dy = py - cy;
+    const x = dx * cos + dy * sin;
+    const y = -dx * sin + dy * cos;
+    return (x / rx) ** 2 + (y / ry) ** 2 <= 1;
+  };
+}
+
+// Alles innerhalb der 80-%-Sicherheitszone für "maskable"-Icons
+const shapes = [{ test: roundedRect(0.485, 0.36, 0.515, 0.85, 0.015), color: STEM }];
+for (let i = 0; i < 4; i++) {
+  const y = 0.37 + i * 0.105;
+  shapes.push({ test: ellipse(0.425, y, 0.04, 0.078, -38), color: GRAIN });
+  shapes.push({ test: ellipse(0.575, y, 0.04, 0.078, 38), color: GRAIN });
+}
+shapes.push({ test: ellipse(0.5, 0.24, 0.04, 0.08, 0), color: GRAIN });
 
 function colorAt(px, py) {
   let color = BG;
-  for (const s of shapes)
-    if (inRoundedRect(px, py, s))
-      color = s === shapes[2] && !inRoundedRect(px, py, shapes[1]) ? color : s.color;
+  for (const s of shapes) if (s.test(px, py)) color = s.color;
   return color;
 }
 

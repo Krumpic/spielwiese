@@ -1,4 +1,4 @@
-# CLAUDE.md – Vorrat (Arbeitstitel)
+# CLAUDE.md – Kornspeicher
 
 Private Progressive Web App (PWA) für das iPhone: virtueller Vorratsschrank, Einkaufsliste, Rezepte.
 Ein einziger Nutzer, Daten liegen **nur lokal auf dem Gerät** (IndexedDB). Kein Backend.
@@ -72,7 +72,11 @@ Der Hook führt `npm run check` automatisch aus und blockiert den Commit bei Feh
 - **Content Security Policy** per `<meta>` in `index.html`: `default-src 'self'`; nur explizit erlaubte
   `connect-src` (z. B. später `https://world.openfoodfacts.org`). Kein `unsafe-eval`, kein `unsafe-inline` für Skripte.
 - Keine Skripte, Fonts oder Styles von CDNs – alles wird mitgebündelt.
-- Eindeutiger Datenbankname (`vorrat-app-db`), da sich alle GitHub-Pages-Projekte eines Accounts eine Origin teilen.
+- Eindeutiger Datenbankname (`kornspeicher-db`), da sich alle GitHub-Pages-Projekte eines Accounts eine Origin teilen.
+- Fachlogik als reine Funktionen in `src/domain/` (gut testbar), Datenbankzugriffe nur über
+  `src/db/repository.ts` (prüft jede Eingabe mit zod), Oberfläche in `src/ui/`.
+- Die IDs in `src/domain/constants.ts` (Lagerorte, Abteilungen, Einheiten) werden gespeichert –
+  nie umbenennen oder löschen, nur ergänzen.
 - Fehlermeldungen zeigen keine internen Details an.
 - Abhängigkeiten minimal halten; `package-lock.json` wird immer committet.
 - `.npmrc` verbietet Installations-Skripte fremder Pakete (`ignore-scripts=true`). Nicht ändern;
