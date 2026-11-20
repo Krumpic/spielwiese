@@ -1,4 +1,4 @@
-# Phasenplan – Vorrat (Arbeitstitel)
+# Phasenplan – Kornspeicher
 
 Status: ⬜ offen · 🔄 in Arbeit · ✅ fertig
 
@@ -6,7 +6,7 @@ Jede Phase endet mit: `npm run check` grün → Commit auf Feature-Branch → **
 
 ---
 
-## Phase 0 – Fundament & Sicherheit 🔄
+## Phase 0 – Fundament & Sicherheit ✅
 
 Ziel: Ein leeres, aber abgesichertes Projekt, das sich auf dem iPhone installieren lässt.
 
@@ -22,23 +22,30 @@ Ziel: Ein leeres, aber abgesichertes Projekt, das sich auf dem iPhone installier
 - [x] GitHub-Actions-Workflow für GitHub Pages (Actions auf Commit-IDs festgenagelt, minimale Rechte)
 - [x] `env.example` anlegen (nur Variablennamen, keine Werte)
 - [x] `.npmrc`: exakte Versionen, keine Installations-Skripte fremder Pakete
+- [x] Repo bereinigt: private E-Mail aus der Historie entfernt, anonyme GitHub-Adresse eingestellt
+- [x] Nutzer: GitHub Pages auf „GitHub Actions" umgestellt, gepusht, auf dem iPhone getestet
 - [ ] Nutzer: 2FA auf GitHub aktivieren, Branch-Schutz für `main` einrichten
-- [ ] Nutzer: GitHub Pages auf „GitHub Actions" umstellen, pushen, auf dem iPhone testen
 
 **Ergebnis:** Leere App mit Icon auf dem iPhone-Home-Bildschirm, startet offline.
 
-## Phase 1 – Vorrat & Einkaufsliste (MVP) ⬜
+## Phase 1 – Vorrat & Einkaufsliste (MVP) 🔄
 
 Ziel: Das Hauptproblem lösen – „Was habe ich zuhause, was brauche ich?"
 
-- [ ] Datenmodell v1 in Dexie (Artikel, Kategorien, Einkaufsliste) + Tests
-- [ ] Artikel anlegen/bearbeiten/löschen
-- [ ] Mengen-Modus pro Artikel: **genau** (Zahl + Einheit) oder **grob** (voll/halb/wenig/leer)
-- [ ] Schnelles +/- beim Verbrauchen/Einräumen
-- [ ] Mindestmenge pro Artikel → automatisch auf die Einkaufsliste
-- [ ] Einkaufsliste: manuell ergänzen, abhaken → abgehakte Artikel wandern in den Vorrat
-- [ ] Kategorien (Kühlschrank, Tiefkühler, Vorratsregal …) und Suche
-- [ ] Handy-optimierte Oberfläche (große Buttons, Daumen-Bedienung)
+- [x] Name „Kornspeicher" + Ähren-Icon
+- [x] Datenmodell v1 in Dexie (Artikel, Einkaufsliste); Fachlogik als getestete reine Funktionen
+- [x] Artikel anlegen/bearbeiten/löschen (Eingaben mit zod geprüft)
+- [x] Lagerorte: Vorratsschrank, Kühlschrank, Tiefkühler (vom Nutzer zugewiesen)
+- [x] Supermarkt-Abteilungen pro Artikel (folgt beim Anlegen dem Lagerort, bis von Hand gewählt)
+- [x] Mengen-Modus pro Artikel: **genau** (Zahl + Einheit) oder **grob** (voll/halb/wenig/leer)
+- [x] Schnelles +/- bzw. Füllstand antippen
+- [x] Mindestmenge + Sollmenge → automatisch mit richtiger Menge auf die Einkaufsliste
+- [x] Einkaufsliste nach Abteilungen sortiert, freie Einträge, abhaken, „Einkauf abschließen" → Vorrat
+- [x] Suche und Filter nach Lagerort
+- [x] Handy-optimierte Oberfläche (große Buttons, Daumen-Bedienung, Safe-Area)
+- [x] Browser-Test des kompletten Ablaufs (18 Prüfungen, keine Konsolen-/CSP-Fehler)
+- [ ] Nutzer: auf dem iPhone ausprobieren und Feedback geben
+- [ ] Offen (mit Nutzer klären): Datenbank-Tests mit `fake-indexeddb` (neues Dev-Paket)
 
 ## Phase 2 – Datensicherung ⬜
 
@@ -72,5 +79,4 @@ Ziel: Das Hauptproblem lösen – „Was habe ich zuhause, was brauche ich?"
 
 ## Offene Entscheidungen
 
-- Endgültiger Name der App
 - Kategorien und Einheiten (Vorschlagsliste erstellen und abstimmen)
