@@ -65,6 +65,7 @@ function NewItemInline({
         minQuantity: null,
         targetQuantity: null,
         minLevel: "low",
+        expiresOn: null,
       });
       onCreated(id, unit);
     });

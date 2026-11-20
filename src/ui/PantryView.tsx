@@ -6,6 +6,7 @@ import {
   sectionLabel,
   type LocationId,
 } from "../domain/constants.ts";
+import { expiryState, expiryText, todayString, type ExpiryState } from "../domain/expiry.ts";
 import { formatQuantity, needsRestock, type Item } from "../domain/item.ts";
 import { changeLevel, changeQuantity } from "../db/repository.ts";
 import { useItems } from "../db/live.ts";
@@ -15,7 +16,7 @@ import { Sheet } from "./Sheet.tsx";
 import { PlusIcon, SearchIcon } from "./icons.tsx";
 import { runSafely } from "./runSafely.ts";
 
-type Filter = "all" | LocationId;
+type Filter = "all" | "expiring" | LocationId;
 
 const LEVEL_STYLE: ReadonlyMap<Item["level"], string> = new Map([
   ["full", "bg-green-100 text-green-900"],
@@ -24,16 +25,37 @@ const LEVEL_STYLE: ReadonlyMap<Item["level"], string> = new Map([
   ["empty", "bg-red-100 text-red-800"],
 ]);
 
-function ItemRow({ item, onEdit }: { item: Item; onEdit: () => void }) {
+const EXPIRY_STYLE: ReadonlyMap<ExpiryState, string> = new Map([
+  ["expired", "font-semibold text-red-700"],
+  ["soon", "font-semibold text-amber-700"],
+  ["ok", "text-stone-500"],
+]);
+
+/** Läuft bald ab oder ist abgelaufen? */
+const isExpiring = (item: Item, today: string) => {
+  const state = expiryState(item.expiresOn, today);
+  return state === "expired" || state === "soon";
+};
+
+function ItemRow({ item, today, onEdit }: { item: Item; today: string; onEdit: () => void }) {
   const restock = needsRestock(item);
+  const expiry = expiryState(item.expiresOn, today);
   return (
     <li className="flex items-center gap-2 px-4 py-2.5">
       <button type="button" className="min-h-11 min-w-0 flex-1 text-left" onClick={onEdit}>
         <span className="block truncate text-base font-medium text-stone-900">{item.name}</span>
-        <span
-          className={`block text-xs ${restock ? "font-semibold text-amber-700" : "text-stone-500"}`}
-        >
-          {restock ? "Nachkaufen" : sectionLabel(item.section)}
+        <span className="block truncate text-xs">
+          {expiry !== null && item.expiresOn !== null && (
+            <span className={EXPIRY_STYLE.get(expiry) ?? ""}>
+              {expiryText(item.expiresOn, today)}
+              {restock && " · "}
+            </span>
+          )}
+          {restock ? (
+            <span className="font-semibold text-amber-700">Nachkaufen</span>
+          ) : (
+            expiry === null && <span className="text-stone-500">{sectionLabel(item.section)}</span>
+          )}
         </span>
       </button>
 
@@ -89,24 +111,34 @@ export function PantryView({ backupOverdue, onOpenSettings }: PantryViewProps) {
   const [filter, setFilter] = useState<Filter>("all");
   const [search, setSearch] = useState("");
   const [editing, setEditing] = useState<Item | "new" | null>(null);
+  const [today] = useState(() => todayString(Date.now()));
+
+  const expiringCount = (items ?? []).filter((item) => isExpiring(item, today)).length;
 
   const groups = useMemo(() => {
     const term = search.trim().toLocaleLowerCase("de");
     const visible = (items ?? []).filter(
       (item) =>
-        (filter === "all" || item.location === filter) &&
+        (filter === "all" ||
+          (filter === "expiring" ? isExpiring(item, today) : item.location === filter)) &&
         (term === "" || item.name.toLocaleLowerCase("de").includes(term)),
     );
+    // Bei „Läuft bald ab": was zuerst abläuft, steht oben
+    const byDate = (a: Item, b: Item) => (a.expiresOn ?? "").localeCompare(b.expiresOn ?? "");
+    const byName = (a: Item, b: Item) => a.name.localeCompare(b.name, "de");
     return LOCATION_IDS.map((location) => ({
       location,
       items: visible
         .filter((item) => item.location === location)
-        .sort((a, b) => a.name.localeCompare(b.name, "de")),
+        .sort((a, b) => (filter === "expiring" ? byDate(a, b) || byName(a, b) : byName(a, b))),
     })).filter((group) => group.items.length > 0);
-  }, [items, filter, search]);
+  }, [items, filter, search, today]);
 
   const filters: { value: Filter; label: string }[] = [
     { value: "all", label: "Alle" },
+    ...(expiringCount > 0
+      ? [{ value: "expiring" as const, label: `Läuft bald ab (${String(expiringCount)})` }]
+      : []),
     ...LOCATION_IDS.map((id) => ({ value: id, label: locationLabel(id) })),
   ];
 
@@ -160,6 +192,25 @@ export function PantryView({ backupOverdue, onOpenSettings }: PantryViewProps) {
             <span className="shrink-0 font-semibold">Sichern ›</span>
           </button>
         )}
+        {expiringCount > 0 && filter !== "expiring" && (
+          <button
+            type="button"
+            onClick={() => {
+              setFilter("expiring");
+            }}
+            className="mt-2 flex w-full items-center justify-between gap-3 rounded-2xl bg-red-50 px-4 py-3 text-left text-sm text-red-800"
+          >
+            <span>
+              <span className="block font-semibold">
+                {expiringCount === 1
+                  ? "1 Artikel läuft bald ab"
+                  : `${String(expiringCount)} Artikel laufen bald ab`}
+              </span>
+              Am besten zuerst verbrauchen.
+            </span>
+            <span className="shrink-0 font-semibold">Zeigen ›</span>
+          </button>
+        )}
         {items === undefined ? (
           <p className="py-10 text-center text-stone-500">Wird geladen …</p>
         ) : items.length === 0 ? (
@@ -189,6 +240,7 @@ export function PantryView({ backupOverdue, onOpenSettings }: PantryViewProps) {
                   <ItemRow
                     key={item.id}
                     item={item}
+                    today={today}
                     onEdit={() => {
                       setEditing(item);
                     }}
@@ -220,7 +272,7 @@ export function PantryView({ backupOverdue, onOpenSettings }: PantryViewProps) {
         >
           <ItemForm
             item={editing === "new" ? null : editing}
-            defaultLocation={filter === "all" ? "pantry" : filter}
+            defaultLocation={filter === "all" || filter === "expiring" ? "pantry" : filter}
             onDone={() => {
               setEditing(null);
             }}

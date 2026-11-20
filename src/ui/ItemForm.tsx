@@ -25,6 +25,7 @@ import {
   updateItem,
 } from "../db/repository.ts";
 import { DEFAULT_SECTION, Field, Segmented, inputClass, numberText } from "./form.tsx";
+import { EXPIRY_WARNING_DAYS } from "../domain/expiry.ts";
 import { runSafely } from "./runSafely.ts";
 
 interface FormState {
@@ -38,6 +39,8 @@ interface FormState {
   minQuantity: string;
   targetQuantity: string;
   minLevel: Level | "never";
+  /** "" = kein Datum, sonst "JJJJ-MM-TT" (Format des Datumsfelds) */
+  expiresOn: string;
 }
 
 function toFormState(item: Item | null, location: LocationId): FormState {
@@ -53,6 +56,7 @@ function toFormState(item: Item | null, location: LocationId): FormState {
       minQuantity: "",
       targetQuantity: "",
       minLevel: "low",
+      expiresOn: "",
     };
   }
   return {
@@ -66,6 +70,7 @@ function toFormState(item: Item | null, location: LocationId): FormState {
     minQuantity: numberText(item.minQuantity),
     targetQuantity: numberText(item.targetQuantity),
     minLevel: item.minLevel ?? "never",
+    expiresOn: item.expiresOn ?? "",
   };
 }
 
@@ -81,6 +86,7 @@ function toItemData(form: FormState) {
     minQuantity: parseDecimal(form.minQuantity),
     targetQuantity: parseDecimal(form.targetQuantity),
     minLevel: form.minLevel === "never" ? null : form.minLevel,
+    expiresOn: form.expiresOn === "" ? null : form.expiresOn,
   };
 }
 
@@ -273,6 +279,36 @@ export function ItemForm({ item, defaultLocation, onDone }: ItemFormProps) {
           </Field>
         </>
       )}
+
+      <div>
+        <Field
+          label="Ablaufdatum (optional)"
+          hint={`Das nächste Ablaufdatum – die App warnt ${String(EXPIRY_WARNING_DAYS)} Tage vorher.`}
+          error={errors.get("expiresOn")}
+        >
+          <input
+            type="date"
+            className={inputClass}
+            value={form.expiresOn}
+            min="2000-01-01"
+            max="2200-12-31"
+            onChange={(e) => {
+              set("expiresOn", e.target.value);
+            }}
+          />
+        </Field>
+        {form.expiresOn !== "" && (
+          <button
+            type="button"
+            className="mt-1 min-h-11 text-sm font-semibold text-brand-800"
+            onClick={() => {
+              set("expiresOn", "");
+            }}
+          >
+            Datum entfernen
+          </button>
+        )}
+      </div>
 
       <button
         type="submit"

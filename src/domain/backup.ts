@@ -16,8 +16,9 @@ export const BACKUP_FORMAT = "kornspeicher-backup";
  * Versionen:
  * - 1 (Phase 2): Vorrat + Einkaufsliste
  * - 2 (Phase 3): + Rezepte
+ * - 3 (Phase 4): Artikel mit Ablaufdatum (expiresOn)
  */
-export const BACKUP_VERSION = 2;
+export const BACKUP_VERSION = 3;
 
 /** Obergrenzen gegen absichtlich riesige oder kaputte Dateien */
 export const MAX_BACKUP_BYTES = 5 * 1024 * 1024;
@@ -190,5 +191,20 @@ function upgradeBackup(raw: unknown): unknown {
   let data = raw as Record<string, unknown>;
   // v1 → v2: Rezepte gab es noch nicht
   if (data["version"] === 1) data = { ...data, version: 2, recipes: [] };
+  // v2 → v3: Artikel hatten noch kein Ablaufdatum
+  if (data["version"] === 2) {
+    const items = data["items"];
+    data = {
+      ...data,
+      version: 3,
+      items: Array.isArray(items)
+        ? (items as unknown[]).map((item: unknown) =>
+            typeof item === "object" && item !== null && !("expiresOn" in item)
+              ? { ...item, expiresOn: null }
+              : item,
+          )
+        : items,
+    };
+  }
   return data;
 }

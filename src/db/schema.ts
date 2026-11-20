@@ -17,7 +17,7 @@ import type { ShoppingEntry } from "../domain/shopping.ts";
 export const DB_NAME = "kornspeicher-db";
 
 /** Aktuelle Schema-Version – bei jeder neuen Version hochzählen (Test prüft das). */
-export const SCHEMA_VERSION = 3;
+export const SCHEMA_VERSION = 4;
 
 /**
  * Einfache Einstellungen/Merkwerte (Tabelle `meta`, Schlüssel = key).
@@ -58,6 +58,22 @@ export class KornspeicherDB extends Dexie {
     this.version(3).stores({
       recipes: "++id, name",
     });
+
+    // ---------- Version 4 (Phase 4): Ablaufdatum ----------
+    // Neues Feld `expiresOn` + Index (für „läuft bald ab"). Bestehende Artikel bekommen
+    // ausdrücklich `null` (= kein Datum), damit jeder Artikel dem aktuellen Format entspricht.
+    this.version(4)
+      .stores({
+        items: "++id, name, location, section, expiresOn",
+      })
+      .upgrade(async (tx) => {
+        await tx
+          .table("items")
+          .toCollection()
+          .modify((item: Record<string, unknown>) => {
+            if (!("expiresOn" in item)) item["expiresOn"] = null;
+          });
+      });
   }
 }
 

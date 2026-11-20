@@ -7,6 +7,7 @@ import {
   isBackupOverdue,
   parseBackup,
 } from "./backup.ts";
+import type { Item } from "./item.ts";
 import type { Recipe } from "./recipe.ts";
 import { makeEntry, makeItem } from "./testing.ts";
 
@@ -43,22 +44,50 @@ describe("Backup – Hin und zurück", () => {
     expect(parse(createBackup({ items: [], shopping: [], recipes: [] }, NOW)).ok).toBe(true);
   });
 
-  it("altes Backup (Format v1, ohne Rezepte) lässt sich weiterhin importieren", () => {
-    // So sieht ein Backup aus Phase 2 aus – eingefroren
+  // Artikel im Format vor Backup v3 – ohne Ablaufdatum (eingefroren)
+  const legacyItem: Partial<Item> = { ...item };
+  delete legacyItem.expiresOn;
+
+  it("altes Backup (Format v1, Phase 2) lässt sich weiterhin importieren", () => {
     const v1 = {
       format: "kornspeicher-backup",
       version: 1,
       exportedAt: NOW,
-      items: [item],
+      items: [legacyItem],
       shopping: [entry],
     };
     const result = parse(v1);
     expect(result.ok).toBe(true);
     if (result.ok) {
-      expect(result.backup.version).toBe(2);
-      expect(result.backup.items).toEqual([item]);
+      expect(result.backup.version).toBe(3);
+      expect(result.backup.items).toEqual([{ ...legacyItem, expiresOn: null }]);
       expect(result.backup.recipes).toEqual([]);
     }
+  });
+
+  it("altes Backup (Format v2, Phase 3) lässt sich weiterhin importieren", () => {
+    const v2 = {
+      format: "kornspeicher-backup",
+      version: 2,
+      exportedAt: NOW,
+      items: [legacyItem],
+      shopping: [entry],
+      recipes: [recipe],
+    };
+    const result = parse(v2);
+    expect(result.ok).toBe(true);
+    if (result.ok) {
+      expect(result.backup.items).toEqual([{ ...legacyItem, expiresOn: null }]);
+      expect(result.backup.recipes).toEqual([recipe]);
+    }
+  });
+
+  it("Ablaufdatum wird mitgesichert und geprüft", () => {
+    const withDate = { ...valid(), items: [{ ...item, expiresOn: "2026-12-24" }] };
+    const result = parse(withDate);
+    expect(result.ok && result.backup.items[0]?.expiresOn).toBe("2026-12-24");
+    expect(parse({ ...valid(), items: [{ ...item, expiresOn: "2026-02-30" }] }).ok).toBe(false);
+    expect(parse({ ...valid(), items: [{ ...item, expiresOn: "morgen" }] }).ok).toBe(false);
   });
 
   it("altes Backup v1 mit Manipulation wird trotzdem abgelehnt", () => {
@@ -66,7 +95,7 @@ describe("Backup – Hin und zurück", () => {
       format: "kornspeicher-backup",
       version: 1,
       exportedAt: NOW,
-      items: [{ ...item, quantity: -1 }],
+      items: [{ ...legacyItem, quantity: -1 }],
       shopping: [],
     };
     expect(parse(v1).ok).toBe(false);

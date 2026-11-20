@@ -37,6 +37,7 @@ const milk: ItemData = {
   minQuantity: 2,
   targetQuantity: 3,
   minLevel: null,
+  expiresOn: null,
 };
 
 const onlyItem = async () => {
