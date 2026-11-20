@@ -79,7 +79,7 @@ Ziel: Das Hauptproblem lösen – „Was habe ich zuhause, was brauche ich?"
 - [x] Browser-Tests: Rezepte 34, Backup 17, Phase 1 18 Prüfungen – alle grün, keine Konsolen-/CSP-Fehler
 - [x] Nutzer: am iPhone ausprobiert („das ist perfekt")
 
-## Phase 4 – Komfort 🔄
+## Phase 4 – Komfort ✅
 
 **Designs**
 
@@ -109,7 +109,15 @@ Ziel: Das Hauptproblem lösen – „Was habe ich zuhause, was brauche ich?"
 **Später**
 
 - [ ] Verbrauchsstatistik („Was kaufe ich am häufigsten?") – vom Nutzer auf später verschoben
-- [ ] Nutzer: am iPhone ausprobieren (Kamera-Erlaubnis beim ersten Scan bestätigen)
+- [x] Nutzer: am iPhone ausprobiert („schon sehr gut")
+
+**Nachbesserung & Abschluss** (Details: [PROTOKOLL.md](PROTOKOLL.md))
+
+- [x] Fenster nur senkrecht scrollbar (alle Fenster, 390/375/320 px gemessen)
+- [x] Scan im Artikel-Formular übernimmt den Produktnamen
+- [x] Abschluss-Review: keine Sicherheitslücke; 2 Datenfehler behoben (Mengen-Obergrenze,
+      Einheiten beim Einkauf) + Regressionstests
+- [x] Projektprotokoll für die Weiterarbeit
 
 ## Phase 5 – Angebote (Recherche) ⬜
 
