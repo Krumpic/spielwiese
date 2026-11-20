@@ -10,10 +10,14 @@
 export const LOCATION_IDS = ["pantry", "fridge", "freezer"] as const;
 export type LocationId = (typeof LOCATION_IDS)[number];
 
+/**
+ * ­ = weiches Trennzeichen: unsichtbar – nur wenn das Wort auf einem schmalen
+ * Bildschirm umbrechen muss, wird dort getrennt („Vorrats-schrank" statt „Vorratssch-rank").
+ */
 const LOCATION_LABELS: ReadonlyMap<LocationId, string> = new Map([
-  ["pantry", "Vorratsschrank"],
-  ["fridge", "Kühlschrank"],
-  ["freezer", "Tiefkühler"],
+  ["pantry", "Vorrats­schrank"],
+  ["fridge", "Kühl­schrank"],
+  ["freezer", "Tief­kühler"],
 ]);
 
 export function locationLabel(id: LocationId): string {

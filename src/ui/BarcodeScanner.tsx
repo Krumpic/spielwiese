@@ -94,7 +94,7 @@ export function BarcodeScanner({ onResult, onClose }: BarcodeScannerProps) {
 
   return (
     <div
-      className="fixed inset-0 z-60 flex flex-col bg-black text-white"
+      className="fixed inset-0 z-60 flex flex-col overflow-hidden bg-black text-white"
       role="dialog"
       aria-modal="true"
       aria-label="Barcode scannen"

@@ -14,3 +14,15 @@ body {
     -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
   overscroll-behavior-y: none;
 }
+
+/* Die App scrollt nie seitlich (clip statt hidden: Sticky-Kopfzeilen funktionieren weiter) */
+html,
+body {
+  overflow-x: clip;
+  overscroll-behavior-x: none;
+}
+
+/* iOS-Safari: Datum im Datumsfeld linksbündig wie alle anderen Felder */
+input[type="date"]::-webkit-date-and-time-value {
+  text-align: left;
+}
